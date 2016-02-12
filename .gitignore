@@ -1,0 +1,3 @@
+*.db
+cli/.bobbie
+cli/cli
