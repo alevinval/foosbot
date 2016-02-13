@@ -17,7 +17,7 @@ const (
 func (t tokenType) String() string {
 	switch t {
 	case TokenEOF:
-		return "eof"
+		return "EOF"
 	case TokenWhitespace:
 		return "whitespace"
 	case TokenIdentifier:

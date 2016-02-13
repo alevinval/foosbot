@@ -7,64 +7,89 @@ import (
 	"testing"
 )
 
-func TestIncorrectCommandT1Players(t *testing.T) {
-	cmd := "alex jordi joaquin 2 vs 1 samuel jordi"
-	r := bytes.NewReader([]byte(cmd))
+func newParser(input string) *parsing.Parser {
+	r := bytes.NewReader([]byte(input))
 	p := parsing.NewParser(r)
-	_, err := p.ParseMatch()
+	return p
+}
+
+func TestParseCommands(t *testing.T) {
+	p := newParser("foosbot match foosbot stats")
+	token, err := p.ParseCommand()
+	assert.Nil(t, err)
+	assert.Equal(t, parsing.TokenCommandMatch, token.Type)
+
+	token, err = p.ParseCommand()
+	assert.Nil(t, err)
+	assert.Equal(t, parsing.TokenCommandStats, token.Type)
+}
+
+func TestParseMatchCommand(t *testing.T) {
+	p := newParser("p1 p2 2 vs 1 p3 p4")
+	matches, err := p.ParseMatch()
+	assert.Nil(t, err)
+	assert.Equal(t, 3, len(matches))
+
+	p = newParser("1 p2 2 vs 1 p3 p4")
+	matches, err = p.ParseMatch()
+	assert.NotNil(t, err)
+
+	p = newParser("p1 2 2 vs 1 p3 p4")
+	matches, err = p.ParseMatch()
+	assert.NotNil(t, err)
+
+	p = newParser("p1 p2 2* vs 1 p3 p4")
+	matches, err = p.ParseMatch()
+	assert.NotNil(t, err)
+
+	p = newParser("p1 p2 2 _ 1 p3 p4")
+	matches, err = p.ParseMatch()
+	assert.NotNil(t, err)
+
+	p = newParser("p1 p2 2 vs x1 p3 p4")
+	matches, err = p.ParseMatch()
+	assert.NotNil(t, err)
+
+	p = newParser("p1 p2 2 vs 1 p4")
+	matches, err = p.ParseMatch()
+	assert.NotNil(t, err)
+
+	p = newParser("p1 p2 2 vs 1 p3 2")
+	matches, err = p.ParseMatch()
+	assert.NotNil(t, err)
+
+	p = newParser("p1 p2 2 vs 1 p1 p2")
+	matches, err = p.ParseMatch()
+	assert.NotNil(t, err)
+
+	p = newParser("p1 p1 2 vs 1 p3 p4")
+	matches, err = p.ParseMatch()
+	assert.NotNil(t, err)
+
+	p = newParser("p1 p2 2 vs 1 p3 p3")
+	matches, err = p.ParseMatch()
 	assert.NotNil(t, err)
 }
 
-func TestIncorrectCommandT1Score(t *testing.T) {
-	cmd := "alex joaquin vs 1 samuel jordi"
-	r := bytes.NewReader([]byte(cmd))
-	p := parsing.NewParser(r)
-	_, err := p.ParseMatch()
-	assert.NotNil(t, err)
-}
+func TestParseStatsCommand(t *testing.T) {
+	p := newParser("p1 p2")
+	team, err := p.ParseStats()
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(team.Players))
 
-func TestIncorrectCommandMissingVS(t *testing.T) {
-	cmd := "alex joaquin 2 1 samuel jordi"
-	r := bytes.NewReader([]byte(cmd))
-	p := parsing.NewParser(r)
-	_, err := p.ParseMatch()
-	assert.NotNil(t, err)
-}
-
-func TestIncorrectCommandT2Score(t *testing.T) {
-	cmd := "alex joaquin 2 vs _ samuel jordi"
-	r := bytes.NewReader([]byte(cmd))
-	p := parsing.NewParser(r)
-	_, err := p.ParseMatch()
-	assert.NotNil(t, err)
-}
-
-func TestIncorrectCommandT2Players(t *testing.T) {
-	cmd := "alex joaquin 2 vs 2 jordi"
-	r := bytes.NewReader([]byte(cmd))
-	p := parsing.NewParser(r)
-	_, err := p.ParseMatch()
-	assert.NotNil(t, err)
-}
-
-func TestIncorrectCommandDuplicatePlayerSameTeam(t *testing.T) {
-	cmd := "alex alex 2 vs 2 joan jordi"
-	r := bytes.NewReader([]byte(cmd))
-	p := parsing.NewParser(r)
-	_, err := p.ParseMatch()
+	p = newParser("1 p2")
+	team, err = p.ParseStats()
 	assert.NotNil(t, err)
 
-	cmd = "alex joaquin 2 vs 2 jordi jordi"
-	r = bytes.NewReader([]byte(cmd))
-	p = parsing.NewParser(r)
-	_, err = p.ParseMatch()
+	p = newParser("1a p2")
+	team, err = p.ParseStats()
 	assert.NotNil(t, err)
-}
 
-func TestIncorrectCommandDuplicatePlayersCrossTeam(t *testing.T) {
-	cmd := "alex joaquin 2 vs 2 jordi alex"
-	r := bytes.NewReader([]byte(cmd))
-	p := parsing.NewParser(r)
-	_, err := p.ParseMatch()
+	p = newParser("a1 2")
+	team, err = p.ParseStats()
+	assert.NotNil(t, err)
+
+	p = newParser("a1")
+	team, err = p.ParseStats()
 	assert.NotNil(t, err)
 }

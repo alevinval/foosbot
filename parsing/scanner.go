@@ -15,34 +15,34 @@ type Token struct {
 	Pos     int
 }
 
-type scanner struct {
+func (t Token) String() string {
+	return t.Type.String()
+}
+
+type Scanner struct {
 	r    *bytes.Reader
 	pos  int
 	last int
 }
 
-func newScanner(r *bytes.Reader) *scanner {
-	s := new(scanner)
+func NewScanner(r *bytes.Reader) *Scanner {
+	s := new(Scanner)
 	s.r = r
 	return s
 }
 
-func (t Token) String() string {
-	return t.Type.String()
-}
-
-func (s *scanner) Scan() Token {
+func (s *Scanner) Scan() Token {
 	ch, err := s.read()
 	if err != nil {
 		return Token{Type: TokenEOF, Literal: "", Pos: s.pos}
 	}
 	s.unread()
 	if isWhitespace(ch) {
-		_, literal := s.scanIdentifier()
-		return Token{Type: TokenWhitespace, Literal: literal, Pos: s.pos}
+		token, literal := s.scanWhitespaces()
+		return Token{Type: token, Literal: literal, Pos: s.pos}
 	} else if isDigit(ch) {
-		_, literal := s.scanIdentifier()
-		return Token{Type: TokenDigit, Literal: literal, Pos: s.pos}
+		token, literal := s.scanDigit()
+		return Token{Type: token, Literal: literal, Pos: s.pos}
 	} else if isLetter(ch) {
 		token, literal := s.scanIdentifier()
 		return Token{Type: token, Literal: literal, Pos: s.pos}
@@ -51,20 +51,51 @@ func (s *scanner) Scan() Token {
 	}
 }
 
-func (s *scanner) scanIdentifier() (tokenType, string) {
+func (s *Scanner) scanDigit() (tokenType, string) {
 	var buf bytes.Buffer
-	ch, err := s.read()
-	if err != nil {
-		return TokenEOF, string(ch)
-	}
-	buf.WriteRune(ch)
 	for {
 		ch, err := s.read()
 		if ch == eof || err != nil {
 			break
 		} else if isWhitespace(ch) {
+			s.unread()
+			break
+		} else if !isDigit(ch) {
+			s.unread()
+			buf.WriteRune(ch)
+			return TokenIllegal, buf.String()
+		}
+		buf.WriteRune(ch)
+	}
+	return TokenDigit, buf.String()
+}
+
+func (s *Scanner) scanWhitespaces() (tokenType, string) {
+	var buf bytes.Buffer
+	for {
+		ch, err := s.read()
+		if ch == eof || err != nil {
+			break
+		} else if !isWhitespace(ch) {
+			s.unread()
+			break
+		}
+		buf.WriteRune(ch)
+	}
+	return TokenWhitespace, buf.String()
+}
+
+func (s *Scanner) scanIdentifier() (tokenType, string) {
+	var buf bytes.Buffer
+	for {
+		ch, err := s.read()
+		if ch == eof || err != nil {
+			break
+		} else if isWhitespace(ch) {
+			s.unread()
 			break
 		} else if !isLetter(ch) && !isDigit(ch) {
+			s.unread()
 			buf.WriteRune(ch)
 			return TokenIllegal, buf.String()
 		}
@@ -84,14 +115,14 @@ func (s *scanner) scanIdentifier() (tokenType, string) {
 	}
 }
 
-func (s *scanner) read() (rune, error) {
+func (s *Scanner) read() (rune, error) {
 	ch, n, err := s.r.ReadRune()
 	s.pos += n
 	s.last = n
 	return ch, err
 }
 
-func (s *scanner) unread() {
+func (s *Scanner) unread() {
 	s.r.UnreadRune()
 	s.pos -= s.last
 	s.last = 0

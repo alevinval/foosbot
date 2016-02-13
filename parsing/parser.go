@@ -13,14 +13,14 @@ var (
 )
 
 type Parser struct {
-	s            *scanner
+	s            *Scanner
 	lastToken    Token
 	useLastToken bool
 }
 
 func NewParser(r *bytes.Reader) *Parser {
 	p := new(Parser)
-	p.s = newScanner(r)
+	p.s = NewScanner(r)
 	return p
 }
 
