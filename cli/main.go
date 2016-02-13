@@ -106,10 +106,10 @@ func run() {
 			continue
 		}
 		switch command {
-		case parsing.COMMAND_MATCH:
+		case parsing.TokenCommandMatch:
 			response := handleMatch(p, client, message)
 			client.Say(message.Channel, response)
-		case parsing.COMMAND_STATS:
+		case parsing.TokenCommandStats:
 			response := handleStats(p, client, message)
 			client.Say(message.Channel, response)
 		}

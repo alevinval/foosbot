@@ -6,25 +6,12 @@ import (
 )
 
 const (
-	// Tokens
-	EOF Token = iota
-	WHITESPACE
-	IDENTIFIER
-	DIGIT
-	COMMAND_MATCH
-	COMMAND_STATS
-	KEYWORD_FOOSBOT
-	KEYWORD_VS
-
 	eof = rune(0)
 )
 
-type (
-	Token   int
-	Scanner struct {
-		r *bytes.Reader
-	}
-)
+type Scanner struct {
+	r *bytes.Reader
+}
 
 func NewScanner(r *bytes.Reader) *Scanner {
 	s := new(Scanner)
@@ -32,36 +19,30 @@ func NewScanner(r *bytes.Reader) *Scanner {
 	return s
 }
 
-func (s *Scanner) read() (rune, error) {
-	ch, _, err := s.r.ReadRune()
-	return ch, err
-}
-
-func (s *Scanner) unread() {
-	s.r.UnreadRune()
-}
-
 func (s *Scanner) Scan() (Token, string) {
-	ch, _ := s.read()
+	ch, err := s.read()
+	if err != nil {
+		return TokenEOF, ""
+	}
 	s.unread()
 	if isWhitespace(ch) {
 		_, literal := s.scanIdentifier()
-		return WHITESPACE, literal
+		return TokenWhitespace, literal
 	} else if isDigit(ch) {
 		_, literal := s.scanIdentifier()
-		return DIGIT, literal
+		return TokenDigit, literal
 	} else if isLetter(ch) {
 		return s.scanIdentifier()
 	} else {
-		return EOF, "EOF"
+		return TokenEOF, ""
 	}
 }
 
-func (s *Scanner) scanIdentifier() (tok Token, literal string) {
+func (s *Scanner) scanIdentifier() (Token, string) {
 	var buf bytes.Buffer
 	ch, err := s.read()
 	if err != nil {
-		return EOF, "EOF"
+		return TokenEOF, ""
 	}
 	buf.WriteRune(ch)
 	for {
@@ -73,18 +54,27 @@ func (s *Scanner) scanIdentifier() (tok Token, literal string) {
 		}
 		buf.WriteRune(ch)
 	}
-	switch strings.ToUpper(buf.String()) {
-	case "MATCH":
-		return COMMAND_MATCH, buf.String()
-	case "STATS":
-		return COMMAND_STATS, buf.String()
-	case "FOOSBOT", "FOOSBALL", "FB":
-		return KEYWORD_FOOSBOT, buf.String()
-	case "VS":
-		return KEYWORD_VS, buf.String()
+	switch strings.ToLower(buf.String()) {
+	case TokenCommandMatch.String():
+		return TokenCommandMatch, buf.String()
+	case TokenCommandStats.String():
+		return TokenCommandStats, buf.String()
+	case TokenKeywordFoosbot.String(), "foosball", "fb":
+		return TokenKeywordFoosbot, buf.String()
+	case TokenKeywordVS.String():
+		return TokenKeywordVS, buf.String()
 	default:
-		return IDENTIFIER, buf.String()
+		return TokenIdentifier, buf.String()
 	}
+}
+
+func (s *Scanner) read() (rune, error) {
+	ch, _, err := s.r.ReadRune()
+	return ch, err
+}
+
+func (s *Scanner) unread() {
+	s.r.UnreadRune()
 }
 
 func isWhitespace(ch rune) bool { return ch == ' ' || ch == '\t' || ch == '\n' }

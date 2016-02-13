@@ -29,97 +29,64 @@ func NewParser(r *bytes.Reader) *Parser {
 
 func (p *Parser) ParseCommand() (Token, error) {
 	token, _ := p.scan()
-	if token != KEYWORD_FOOSBOT {
+	if token != TokenKeywordFoosbot {
 		return token, ErrNotFoosbotCommand
 	}
 	token, literal := p.scan()
-	p.unscan()
-	if token != COMMAND_MATCH && token != COMMAND_STATS {
-		msg := fmt.Sprintf("Invalid command: %q is not a valid command, try with: %q, %q", literal, "match", "stats")
-		return token, errors.New(msg)
+	if token != TokenCommandMatch && token != TokenCommandStats {
+		return token, newParseError(token.String(), "a valid command (match, stats)", literal)
 	}
 	return token, nil
 }
 
 func (p *Parser) ParseMatch() ([]*foosbot.Match, error) {
-	var t1Players, t2Players []string
 	var t1Score, t2Score int64
-
-	// Expect match keyword
-	tok, literal := p.scan()
-	if tok != COMMAND_MATCH {
-		msg := fmt.Sprintf("Invalid command: expected %q keyword, instead found %q", "match", literal)
-		return nil, errors.New(msg)
+	p1name, err := p.parsePlayerName()
+	if err != nil {
+		return nil, err
 	}
-
-	// Expect T1 identifiers
-	tok, literal = p.scan()
-	for tok == IDENTIFIER {
-		t1Players = append(t1Players, literal)
-		tok, literal = p.scan()
+	p2name, err := p.parsePlayerName()
+	if err != nil {
+		return nil, err
 	}
-	if len(t1Players) != 2 {
-		msg := fmt.Sprintf("Invalid command: provide 2 opponent names for team 1")
-		return nil, errors.New(msg)
+	t1Score, err = p.parseScore()
+	if err != nil {
+		return nil, err
 	}
-
-	// Expect T1 score
-	if tok == DIGIT {
-		t1Score, _ = strconv.ParseInt(literal, 10, 0)
-	} else {
-		msg := fmt.Sprintf("Invalid command: expected team 1 score, instead found %q", literal)
-		return nil, errors.New(msg)
+	err = p.parseVs()
+	if err != nil {
+		return nil, err
 	}
-
-	// Expect VS keyword
-	tok, literal = p.scan()
-	if tok != KEYWORD_VS {
-		msg := fmt.Sprintf("Invalid command: expected %q keyword, instead found %q", "vs", literal)
-		return nil, errors.New(msg)
+	t2Score, err = p.parseScore()
+	if err != nil {
+		return nil, err
 	}
-
-	// Expect T2 score
-	tok, literal = p.scan()
-	if tok == DIGIT {
-		t2Score, _ = strconv.ParseInt(literal, 10, 0)
-	} else {
-		msg := fmt.Sprintf("Invalid command: expected team 2 score, instead found %q", literal)
-		return nil, errors.New(msg)
+	p3name, err := p.parsePlayerName()
+	if err != nil {
+		return nil, err
 	}
-
-	// Expect T2 identifier
-	tok, literal = p.scan()
-	for tok == IDENTIFIER {
-		t2Players = append(t2Players, literal)
-		tok, literal = p.scan()
+	p4name, err := p.parsePlayerName()
+	if err != nil {
+		return nil, err
 	}
-	if len(t2Players) != 2 {
-		msg := fmt.Sprintf("Invalid command: provide 2 opponent names for team 2")
-		return nil, errors.New(msg)
+	err = p.parseEof()
+	if err != nil {
+		return nil, err
 	}
-
-	// Expect end of command
-	tok, literal = p.scan()
-	if tok != EOF {
-		msg := fmt.Sprintf("Invalid command: expected end of command, instead found %q", literal)
-		return nil, errors.New(msg)
-	}
+	t1Players := []string{p1name, p2name}
+	t2Players := []string{p3name, p4name}
 
 	if t1Players[0] == t1Players[1] {
-		msg := fmt.Sprintf("Invalid command: player %q found twice in team 1", t1Players[0])
-		return nil, errors.New(msg)
+		return nil, newCommandError(fmt.Sprintf("player %q found twice in team 1", t1Players[0]))
 	}
 	if t2Players[0] == t2Players[1] {
-		msg := fmt.Sprintf("Invalid command: player %q found twice in team 2", t1Players[0])
-		return nil, errors.New(msg)
+		return nil, newCommandError(fmt.Sprintf("player %q found twice in team 2", t2Players[0]))
 	}
 	if in(t1Players[0], t2Players) {
-		msg := fmt.Sprintf("Invalid command: player %q cannot be in both teams", t1Players[0])
-		return nil, errors.New(msg)
+		return nil, newCommandError(fmt.Sprintf("player %q cannot be in both teams", t1Players[0]))
 	}
 	if in(t1Players[1], t2Players) {
-		msg := fmt.Sprintf("Invalid command: player %q cannot be in both teams", t1Players[1])
-		return nil, errors.New(msg)
+		return nil, newCommandError(fmt.Sprintf("player %q cannot be in both teams", t1Players[1]))
 	}
 
 	// Parsing correct, re-create match history
@@ -143,35 +110,51 @@ func (p *Parser) ParseMatch() ([]*foosbot.Match, error) {
 }
 
 func (p *Parser) ParseStats() ([]string, error) {
-	var p1, p2 string
-
-	tok, literal := p.scan()
-	if tok != COMMAND_STATS {
-		msg := fmt.Sprintf("Invalid command: expected %q keyword, instead found %q", "stats", literal)
-		return nil, errors.New(msg)
+	p1, err := p.parsePlayerName()
+	if err != nil {
+		return nil, err
 	}
-
-	tok, literal = p.scan()
-	if tok != IDENTIFIER {
-		msg := fmt.Sprintf("Invalid command: expected 1st player name, instead found %q", literal)
-		return nil, errors.New(msg)
+	p2, err := p.parsePlayerName()
+	if err != nil {
+		return nil, err
 	}
-	p1 = literal
-
-	tok, literal = p.scan()
-	if tok != IDENTIFIER {
-		msg := fmt.Sprintf("Invalid command: expected 2nd player name, instead found %q", literal)
-		return nil, errors.New(msg)
+	err = p.parseEof()
+	if err != nil {
+		return nil, err
 	}
-	p2 = literal
-
-	tok, literal = p.scan()
-	if tok != EOF {
-		msg := fmt.Sprintf("Invalid command: expected EOF, instead found %q", literal)
-		return nil, errors.New(msg)
-	}
-
 	return []string{p1, p2}, nil
+}
+
+func (p *Parser) parsePlayerName() (string, error) {
+	token, literal := p.scan()
+	if token != TokenIdentifier {
+		return "", newParseError(token.String(), fmt.Sprintf("player name %s", TokenIdentifier), literal)
+	}
+	return literal, nil
+}
+
+func (p *Parser) parseScore() (int64, error) {
+	token, literal := p.scan()
+	if token != TokenDigit {
+		return 0, newParseError(token.String(), fmt.Sprintf("team score %s", TokenDigit), literal)
+	}
+	value, _ := strconv.ParseInt(literal, 10, 0)
+	return value, nil
+}
+
+func (p *Parser) parseVs() error {
+	token, literal := p.scan()
+	if token != TokenKeywordVS {
+		return newParseError(token.String(), fmt.Sprintf("%s keyword", TokenKeywordVS), literal)
+	}
+	return nil
+}
+func (p *Parser) parseEof() error {
+	token, literal := p.scan()
+	if token != TokenEOF {
+		return newParseError(token.String(), TokenEOF.String(), literal)
+	}
+	return nil
 }
 
 func (p *Parser) scan() (tok Token, lit string) {
@@ -181,7 +164,7 @@ func (p *Parser) scan() (tok Token, lit string) {
 	}
 
 	tok, lit = p.s.Scan()
-	if tok == WHITESPACE {
+	if tok == TokenWhitespace {
 		tok, lit = p.s.Scan()
 	}
 
@@ -200,4 +183,19 @@ func in(match string, arr []string) bool {
 		}
 	}
 	return false
+}
+
+func newParseError(found, expected, literal string) error {
+	var msg string
+	if literal == "" {
+		msg = fmt.Sprintf("Syntax error: found %s, expected %s.", found, expected)
+	} else {
+		msg = fmt.Sprintf("Syntax error: found %s %s, expected %s.", literal, found, expected)
+	}
+	return errors.New(msg)
+}
+
+func newCommandError(message string) error {
+	msg := fmt.Sprintf("Invalid command: %s", message)
+	return errors.New(msg)
 }
