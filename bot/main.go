@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"time"
 )
 
 func handleMatch(parser *parsing.Parser, client *slack.Client, message slack.Message) string {
@@ -94,9 +95,17 @@ func run() {
 	}
 }
 
+func periodicBackup() {
+	for {
+		foosbot.Store()
+		time.Sleep(1 * time.Hour)
+	}
+}
+
 func main() {
 	foosbot.Load()
 	go run()
+	go periodicBackup()
 	<-sysExit()
 	foosbot.Store()
 }
