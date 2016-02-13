@@ -9,48 +9,64 @@ const (
 	eof = rune(0)
 )
 
-type Scanner struct {
-	r *bytes.Reader
+type Token struct {
+	Type    tokenType
+	Literal string
+	Pos     int
 }
 
-func NewScanner(r *bytes.Reader) *Scanner {
-	s := new(Scanner)
+type scanner struct {
+	r    *bytes.Reader
+	pos  int
+	last int
+}
+
+func newScanner(r *bytes.Reader) *scanner {
+	s := new(scanner)
 	s.r = r
 	return s
 }
 
-func (s *Scanner) Scan() (Token, string) {
+func (t Token) String() string {
+	return t.Type.String()
+}
+
+func (s *scanner) Scan() Token {
 	ch, err := s.read()
 	if err != nil {
-		return TokenEOF, ""
+		return Token{Type: TokenEOF, Literal: "", Pos: s.pos}
 	}
 	s.unread()
 	if isWhitespace(ch) {
 		_, literal := s.scanIdentifier()
-		return TokenWhitespace, literal
+		return Token{Type: TokenWhitespace, Literal: literal, Pos: s.pos}
 	} else if isDigit(ch) {
 		_, literal := s.scanIdentifier()
-		return TokenDigit, literal
+		return Token{Type: TokenDigit, Literal: literal, Pos: s.pos}
 	} else if isLetter(ch) {
-		return s.scanIdentifier()
+		token, literal := s.scanIdentifier()
+		return Token{Type: token, Literal: literal, Pos: s.pos}
 	} else {
-		return TokenEOF, ""
+		return Token{Type: TokenIllegal, Literal: string(ch), Pos: s.pos}
 	}
 }
 
-func (s *Scanner) scanIdentifier() (Token, string) {
+func (s *scanner) scanIdentifier() (tokenType, string) {
 	var buf bytes.Buffer
 	ch, err := s.read()
 	if err != nil {
-		return TokenEOF, ""
+		return TokenEOF, string(ch)
 	}
 	buf.WriteRune(ch)
 	for {
 		ch, err := s.read()
 		if ch == eof || err != nil {
 			break
-		} else if !isLetter(ch) && !isDigit(ch) && ch != '_' {
+		} else if isWhitespace(ch) {
 			break
+		} else if !isLetter(ch) && !isDigit(ch) {
+			buf.WriteRune(ch)
+			return TokenIllegal, buf.String()
 		}
 		buf.WriteRune(ch)
 	}
@@ -68,13 +84,17 @@ func (s *Scanner) scanIdentifier() (Token, string) {
 	}
 }
 
-func (s *Scanner) read() (rune, error) {
-	ch, _, err := s.r.ReadRune()
+func (s *scanner) read() (rune, error) {
+	ch, n, err := s.r.ReadRune()
+	s.pos += n
+	s.last = n
 	return ch, err
 }
 
-func (s *Scanner) unread() {
+func (s *scanner) unread() {
 	s.r.UnreadRune()
+	s.pos -= s.last
+	s.last = 0
 }
 
 func isWhitespace(ch rune) bool { return ch == ' ' || ch == '\t' || ch == '\n' }

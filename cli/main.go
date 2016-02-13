@@ -46,7 +46,12 @@ func handleStats(parser *parsing.Parser, client *slack.Client, message slack.Mes
 		if i > 3 {
 			break
 		}
-		response += fmt.Sprintf("- %s\n", stats.Matches[len(stats.Matches)-1-i])
+		match := stats.Matches[len(stats.Matches)-1-i]
+		if match.WinnerID == team.ID {
+			response += fmt.Sprintf("- Won against %s\n", match.Looser())
+		} else {
+			response += fmt.Sprintf("- Lost against %s\n", match.Winner())
+		}
 	}
 	return response
 }
@@ -70,7 +75,7 @@ func run() {
 		r := bytes.NewReader(in)
 		p := parsing.NewParser(r)
 
-		command, err := p.ParseCommand()
+		token, err := p.ParseCommand()
 		if err == parsing.ErrNotFoosbotCommand {
 			continue
 		} else if err != nil {
@@ -78,7 +83,7 @@ func run() {
 			client.Say(message.Channel, response)
 			continue
 		}
-		switch command {
+		switch token.Type {
 		case parsing.TokenCommandMatch:
 			response := handleMatch(p, client, message)
 			client.Say(message.Channel, response)

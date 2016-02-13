@@ -1,9 +1,10 @@
 package parsing
 
-type Token int
+type tokenType int
 
 const (
-	TokenEOF Token = iota
+	TokenEOF tokenType = iota
+	TokenIllegal
 	TokenWhitespace
 	TokenIdentifier
 	TokenDigit
@@ -13,7 +14,7 @@ const (
 	TokenKeywordVS
 )
 
-func (t Token) String() string {
+func (t tokenType) String() string {
 	switch t {
 	case TokenEOF:
 		return "eof"
@@ -31,6 +32,8 @@ func (t Token) String() string {
 		return "foosbot"
 	case TokenKeywordVS:
 		return "vs"
+	case TokenIllegal:
+		return "illegal token"
 	default:
 		return "-unkown-"
 	}

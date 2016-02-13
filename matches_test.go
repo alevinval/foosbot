@@ -20,5 +20,5 @@ func TestRegisterMatch(t *testing.T) {
 
 	match, ok := foosbot.MatchByTeams(winner, looser)
 	assert.True(t, ok)
-	assert.Equal(t, match.Winner, winner.ID)
+	assert.Equal(t, match.WinnerID, winner.ID)
 }

@@ -6,10 +6,10 @@ import (
 )
 
 type Match struct {
-	ID     string  `json:"match_id"`
-	Winner string  `json:"winner_id"`
-	Teams  []*Team `json:"teams"`
-	N      int     `json:"n"`
+	ID       string  `json:"match_id"`
+	WinnerID string  `json:"winner_id"`
+	Teams    []*Team `json:"teams"`
+	N        int     `json:"-"`
 }
 
 var (
@@ -24,8 +24,25 @@ func (m *Match) ShortID() string {
 }
 
 func (m *Match) String() string {
-	return fmt.Sprintf("Match %q %s (winners) vs %s", m.ShortID(),
-		m.Teams[0], m.Teams[1])
+	return fmt.Sprintf("Match %q", m.ShortID())
+}
+
+func (m *Match) Winner() *Team {
+	for _, team := range m.Teams {
+		if team.ID == m.WinnerID {
+			return team
+		}
+	}
+	return nil
+}
+
+func (m *Match) Looser() *Team {
+	for _, team := range m.Teams {
+		if team.ID != m.WinnerID {
+			return team
+		}
+	}
+	return nil
 }
 
 func buildMatchId(a, b *Team) string {
@@ -37,9 +54,8 @@ func NewMatch(winner, looser *Team) *Match {
 	matchID := buildMatchId(winner, looser)
 	match := new(Match)
 	match.ID = matchID
-	match.Winner = winner.ID
+	match.WinnerID = winner.ID
 	match.Teams = []*Team{winner, looser}
-	match.N = 1
 	return match
 }
 
@@ -52,6 +68,7 @@ func AddMatch(match *Match) {
 		m.N++
 		return
 	}
+	match.N++
 	matches = append(matches, match)
 	matchesMap[match.ID] = match
 	for _, team := range match.Teams {

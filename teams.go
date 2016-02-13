@@ -23,7 +23,7 @@ func (t *Team) ShortID() string {
 func (t *Team) String() string {
 	p1 := t.Players[0].Name
 	p2 := t.Players[1].Name
-	return fmt.Sprintf("Team %q (%s %s)", t.ShortID(), p1, p2)
+	return fmt.Sprintf("Team %s (%s %s)", t.ShortID(), p1, p2)
 }
 
 func buildTeamId(players ...*Player) string {

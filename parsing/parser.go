@@ -13,28 +13,25 @@ var (
 )
 
 type Parser struct {
-	s   *Scanner
-	buf struct {
-		tok Token
-		lit string
-		n   int
-	}
+	s            *scanner
+	lastToken    Token
+	useLastToken bool
 }
 
 func NewParser(r *bytes.Reader) *Parser {
 	p := new(Parser)
-	p.s = NewScanner(r)
+	p.s = newScanner(r)
 	return p
 }
 
 func (p *Parser) ParseCommand() (Token, error) {
-	token, _ := p.scan()
-	if token != TokenKeywordFoosbot {
+	token := p.scan()
+	if token.Type != TokenKeywordFoosbot {
 		return token, ErrNotFoosbotCommand
 	}
-	token, literal := p.scan()
-	if token != TokenCommandMatch && token != TokenCommandStats {
-		return token, newParseError(token.String(), "a valid command (match, stats)", literal)
+	token = p.scan()
+	if token.Type != TokenCommandMatch && token.Type != TokenCommandStats {
+		return token, newParseError(token, "a valid command (match, stats)")
 	}
 	return token, nil
 }
@@ -129,54 +126,53 @@ func (p *Parser) ParseStats() (*foosbot.Team, error) {
 }
 
 func (p *Parser) parsePlayerName() (string, error) {
-	token, literal := p.scan()
-	if token != TokenIdentifier {
-		return "", newParseError(token.String(), fmt.Sprintf("player name %s", TokenIdentifier), literal)
+	token := p.scan()
+	if token.Type != TokenIdentifier {
+		return "", newParseError(token, fmt.Sprintf("player name %s", TokenIdentifier))
 	}
-	return literal, nil
+	return token.Literal, nil
 }
 
 func (p *Parser) parseScore() (int64, error) {
-	token, literal := p.scan()
-	if token != TokenDigit {
-		return 0, newParseError(token.String(), fmt.Sprintf("team score %s", TokenDigit), literal)
+	token := p.scan()
+	if token.Type != TokenDigit {
+		return 0, newParseError(token, fmt.Sprintf("team score %s", TokenDigit))
 	}
-	value, _ := strconv.ParseInt(literal, 10, 0)
+	value, _ := strconv.ParseInt(token.Literal, 10, 0)
 	return value, nil
 }
 
 func (p *Parser) parseVs() error {
-	token, literal := p.scan()
-	if token != TokenKeywordVS {
-		return newParseError(token.String(), fmt.Sprintf("%s keyword", TokenKeywordVS), literal)
+	token := p.scan()
+	if token.Type != TokenKeywordVS {
+		return newParseError(token, fmt.Sprintf("%s keyword", TokenKeywordVS))
 	}
 	return nil
 }
 func (p *Parser) parseEof() error {
-	token, literal := p.scan()
-	if token != TokenEOF {
-		return newParseError(token.String(), TokenEOF.String(), literal)
+	token := p.scan()
+	if token.Type != TokenEOF {
+		return newParseError(token, TokenEOF.String())
 	}
 	return nil
 }
 
-func (p *Parser) scan() (tok Token, lit string) {
-	if p.buf.n != 0 {
-		p.buf.n = 0
-		return p.buf.tok, p.buf.lit
+func (p *Parser) scan() Token {
+	if p.useLastToken {
+		p.useLastToken = false
+		return p.lastToken
 	}
 
-	tok, lit = p.s.Scan()
-	if tok == TokenWhitespace {
-		tok, lit = p.s.Scan()
+	token := p.s.Scan()
+	if token.Type == TokenWhitespace {
+		token = p.s.Scan()
 	}
-
-	p.buf.tok, p.buf.lit = tok, lit
-	return tok, lit
+	p.lastToken = token
+	return token
 }
 
 func (p *Parser) unscan() {
-	p.buf.n = 1
+	p.useLastToken = true
 }
 
 func in(match string, arr []string) bool {
@@ -188,12 +184,12 @@ func in(match string, arr []string) bool {
 	return false
 }
 
-func newParseError(found, expected, literal string) error {
+func newParseError(found Token, expected string) error {
 	var msg string
-	if literal == "" {
-		msg = fmt.Sprintf("Syntax error: found %s, expected %s.", found, expected)
+	if found.Literal == "" {
+		msg = fmt.Sprintf("Syntax error: found %s, expected %s on position %d.", found.Type, expected, found.Pos)
 	} else {
-		msg = fmt.Sprintf("Syntax error: found %s %s, expected %s.", literal, found, expected)
+		msg = fmt.Sprintf("Syntax error: found %s %q, expected %s on position %d.", found.Type, found.Literal, expected, found.Pos)
 	}
 	return errors.New(msg)
 }
