@@ -7,12 +7,6 @@ type Player struct {
 	Name string `json:"name"`
 }
 
-var (
-	players       = []*Player{}
-	playerMap     = map[string]*Player{}
-	playerNameMap = map[string]*Player{}
-)
-
 func (p *Player) ShortID() string {
 	return strings.ToUpper(p.ID[:8])
 }
@@ -26,22 +20,22 @@ func NewPlayer(name string) *Player {
 }
 
 func AddPlayer(player *Player) {
-	_, ok := playerMap[player.ID]
+	_, ok := PlayersMap[player.ID]
 	if ok {
 		return
 	}
-	players = append(players, player)
-	playerMap[player.ID] = player
-	playerNameMap[player.Name] = player
+	Players = append(Players, player)
+	PlayersMap[player.ID] = player
+	PlayersNameMap[player.Name] = player
 	return
 }
 
 func PlayerByID(playerID string) (player *Player, ok bool) {
-	player, ok = playerMap[playerID]
+	player, ok = PlayersMap[playerID]
 	return
 }
 
 func PlayerByName(name string) (player *Player, ok bool) {
-	player, ok = playerNameMap[name]
+	player, ok = PlayersNameMap[name]
 	return
 }

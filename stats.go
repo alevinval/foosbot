@@ -14,9 +14,9 @@ func TeamStats(team *Team) *teamStats {
 	matches := MatchesWithTeam(team)
 	for _, match := range matches {
 		if match.WinnerID == team.ID {
-			ts.Wins += match.N
+			ts.Wins++
 		} else {
-			ts.Defeats += match.N
+			ts.Defeats++
 		}
 	}
 	ts.PlayedGames = ts.Wins + ts.Defeats

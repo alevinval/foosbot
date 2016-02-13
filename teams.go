@@ -11,11 +11,6 @@ type Team struct {
 	Players []*Player `json:"players"`
 }
 
-var (
-	teams    = []*Team{}
-	teamsMap = map[string]*Team{}
-)
-
 func (t *Team) ShortID() string {
 	return strings.ToUpper(t.ID[:8])
 }
@@ -44,12 +39,12 @@ func NewTeam(players ...*Player) *Team {
 }
 
 func AddTeam(team *Team) {
-	_, ok := teamsMap[team.ID]
+	_, ok := TeamsMap[team.ID]
 	if ok {
 		return
 	}
-	teams = append(teams, team)
-	teamsMap[team.ID] = team
+	Teams = append(Teams, team)
+	TeamsMap[team.ID] = team
 
 	for _, player := range team.Players {
 		AddPlayer(player)
@@ -58,12 +53,12 @@ func AddTeam(team *Team) {
 }
 
 func TeamByID(id string) (team *Team, ok bool) {
-	team, ok = teamsMap[id]
+	team, ok = TeamsMap[id]
 	return
 }
 
 func TeamByPlayers(players ...*Player) (team *Team, ok bool) {
 	teamID := buildTeamId(players...)
-	team, ok = teamsMap[teamID]
+	team, ok = TeamsMap[teamID]
 	return
 }
