@@ -10,9 +10,10 @@ import (
 )
 
 type State struct {
-	Players []*Player
-	Teams   []*Team
-	Matches []*Match
+	Players      []*Player
+	Teams        []*Team
+	Matches      []*Match
+	MatchHistory []string
 }
 
 var (
@@ -35,7 +36,7 @@ func Reset() {
 }
 
 func Store() {
-	s := State{Matches: matches}
+	s := State{Matches: matches, MatchHistory: matchHistory}
 	data, err := json.Marshal(s)
 	if err != nil {
 		log.Printf("cannot store state: %s", err)
@@ -61,7 +62,15 @@ func Load() {
 		return
 	}
 	log.Printf("loading state from db")
+	matchIndex := map[string]*Match{}
 	for _, match := range s.Matches {
+		matchIndex[match.ID] = match
+	}
+	for _, matchID := range s.MatchHistory {
+		match, ok := matchIndex[matchID]
+		if !ok {
+			log.Panicf("corrupted history %q", matchID)
+		}
 		log.Printf("loading match %q", match.ShortID())
 		AddMatch(match)
 	}

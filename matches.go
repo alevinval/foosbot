@@ -13,8 +13,10 @@ type Match struct {
 }
 
 var (
-	matches    = []*Match{}
-	matchesMap = map[string]*Match{}
+	head         = 0
+	matchHistory = []string{}
+	matches      = []*Match{}
+	matchesMap   = map[string]*Match{}
 )
 
 func (m *Match) ShortID() string {
@@ -42,6 +44,9 @@ func NewMatch(winner, looser *Team) *Match {
 }
 
 func AddMatch(match *Match) {
+	defer func() {
+		matchHistory = append(matchHistory, match.ID)
+	}()
 	m, ok := matchesMap[match.ID]
 	if ok {
 		m.N++
@@ -67,13 +72,29 @@ func MatchByTeams(a, b *Team) (match *Match, ok bool) {
 }
 
 func MatchesWithTeam(t *Team) (foundMatches []*Match) {
+	outcomes := []string{}
 	for _, match := range matches {
 		for _, team := range match.Teams {
 			if t.ID == team.ID {
-				foundMatches = append(foundMatches, match)
+				outcomes = append(outcomes, match.ID)
 				break
 			}
 		}
 	}
+	for _, matchID := range matchHistory {
+		if in(outcomes, matchID) {
+			m, _ := MatchByID(matchID)
+			foundMatches = append(foundMatches, m)
+		}
+	}
 	return
+}
+
+func in(arr []string, m string) bool {
+	for i := range arr {
+		if arr[i] == m {
+			return true
+		}
+	}
+	return false
 }
