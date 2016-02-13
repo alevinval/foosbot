@@ -97,8 +97,8 @@ func run() {
 
 func periodicBackup() {
 	for {
-		foosbot.Store()
 		time.Sleep(1 * time.Hour)
+		foosbot.Store()
 	}
 }
 
