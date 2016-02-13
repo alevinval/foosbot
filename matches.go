@@ -1,5 +1,10 @@
 package foosbot
 
+import (
+	"fmt"
+	"strings"
+)
+
 type Match struct {
 	ID     string  `json:"match_id"`
 	Winner string  `json:"winner_id"`
@@ -13,7 +18,12 @@ var (
 )
 
 func (m *Match) ShortID() string {
-	return m.ID[:8]
+	return strings.ToUpper(m.ID[:8])
+}
+
+func (m *Match) String() string {
+	return fmt.Sprintf("Match %q %s (winners) vs %s", m.ShortID(),
+		m.Teams[0], m.Teams[1])
 }
 
 func buildMatchId(a, b *Team) string {

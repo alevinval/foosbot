@@ -18,13 +18,12 @@ func handleMatch(parser *parsing.Parser, client *slack.Client, message slack.Mes
 	if err != nil {
 		return fmt.Sprintf("%s", err)
 	}
-	for _, match := range matches {
-		foosbot.AddMatch(match)
+	for i := range matches {
+		foosbot.AddMatch(matches[i])
 	}
-
 	matchIds := []string{}
-	for _, match := range matches {
-		matchIds = append(matchIds, match.ShortID())
+	for i := range matches {
+		matchIds = append(matchIds, matches[i].ShortID())
 	}
 	ids := strings.Join(matchIds, ",")
 	return fmt.Sprintf("%d matches %q registered to history.", len(matches), ids)
@@ -32,49 +31,23 @@ func handleMatch(parser *parsing.Parser, client *slack.Client, message slack.Mes
 }
 
 func handleStats(parser *parsing.Parser, client *slack.Client, message slack.Message) string {
-	playerNames, err := parser.ParseStats()
+	team, err := parser.ParseStats()
 	if err != nil {
 		return fmt.Sprintf("%s", err)
 	}
-	players := []foosbot.Player{}
-	for _, name := range playerNames {
-		player, ok := foosbot.PlayerByName(name)
-		if !ok {
-			return fmt.Sprintf("Player %q not found", name)
-		}
-		players = append(players, player)
-	}
-	team, ok := foosbot.TeamByPlayers(players...)
-	if !ok {
-		return fmt.Sprintf("Those players are not in a team")
-	}
-	wins, defeats := 0, 0
-	teamMatches := foosbot.MatchesWithTeam(team)
-	for _, match := range teamMatches {
-		if match.Winner == team.ID {
-			wins += match.N
-		} else {
-			defeats += match.N
-		}
-	}
-	if len(teamMatches) == 0 {
-		response := fmt.Sprintf("Team \"%s\" - (%s, %s) hasn't played any match yet.",
-			team.ShortID(), team.Players[0].Name, team.Players[1].Name)
+	stats := foosbot.TeamStats(team)
+	if stats.PlayedGames == 0 {
+		response := fmt.Sprintf("%s hasn't played any match yet.", team)
 		return response
 	}
-	lastMatch := teamMatches[len(teamMatches)-1]
-	opponent := lastMatch.Teams[0]
-	if opponent.ID == team.ID {
-		opponent = lastMatch.Teams[1]
+	response := fmt.Sprintf("%s has played %d matches, with a stunning record of %d wins and "+
+		"%d defeats.\nRecent match history:\n", team, stats.PlayedGames, stats.Wins, stats.Defeats)
+	for i := range stats.Matches {
+		if i > 3 {
+			break
+		}
+		response += fmt.Sprintf("- %s\n", stats.Matches[len(stats.Matches)-1-i])
 	}
-	outcome := "lost"
-	if team.ID == lastMatch.Winner {
-		outcome = "won"
-	}
-	response := fmt.Sprintf("Team \"%s\" - (%s, %s) has played %d matches, with a stunning record of %d wins and "+
-		"%d defeats.\nTheir last match was against \"%s\" - (%s, %s) and they %s",
-		team.ShortID(), team.Players[0].Name, team.Players[1].Name, wins+defeats, wins, defeats,
-		lastMatch.ShortID(), opponent.Players[0].Name, opponent.Players[1].Name, outcome)
 	return response
 }
 

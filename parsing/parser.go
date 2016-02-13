@@ -109,12 +109,12 @@ func (p *Parser) ParseMatch() ([]*foosbot.Match, error) {
 	return matches, nil
 }
 
-func (p *Parser) ParseStats() ([]string, error) {
-	p1, err := p.parsePlayerName()
+func (p *Parser) ParseStats() (*foosbot.Team, error) {
+	p1name, err := p.parsePlayerName()
 	if err != nil {
 		return nil, err
 	}
-	p2, err := p.parsePlayerName()
+	p2name, err := p.parsePlayerName()
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +122,10 @@ func (p *Parser) ParseStats() ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	return []string{p1, p2}, nil
+	p1 := foosbot.NewPlayer(p1name)
+	p2 := foosbot.NewPlayer(p2name)
+	team := foosbot.NewTeam(p1, p2)
+	return team, nil
 }
 
 func (p *Parser) parsePlayerName() (string, error) {

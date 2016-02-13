@@ -10,7 +10,7 @@ import (
 )
 
 type State struct {
-	Players []Player
+	Players []*Player
 	Teams   []*Team
 	Matches []*Match
 }
@@ -29,7 +29,7 @@ func hash(input ...string) string {
 }
 
 func Reset() {
-	players = []Player{}
+	players = []*Player{}
 	teams = []*Team{}
 	matches = []*Match{}
 }

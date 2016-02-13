@@ -1,30 +1,31 @@
 package foosbot
 
+import "strings"
+
 type Player struct {
 	ID   string `json:"player_id"`
 	Name string `json:"name"`
 }
 
 var (
-	players       = []Player{}
-	playerMap     = map[string]Player{}
-	playerNameMap = map[string]Player{}
+	players       = []*Player{}
+	playerMap     = map[string]*Player{}
+	playerNameMap = map[string]*Player{}
 )
 
 func (p *Player) ShortID() string {
-	return p.ID[:8]
+	return strings.ToUpper(p.ID[:8])
 }
 
-func NewPlayer(name string) Player {
+func NewPlayer(name string) *Player {
 	playerID := hash(name)
-	player := Player{
-		ID:   playerID,
-		Name: name,
-	}
+	player := new(Player)
+	player.ID = playerID
+	player.Name = name
 	return player
 }
 
-func AddPlayer(player Player) {
+func AddPlayer(player *Player) {
 	_, ok := playerMap[player.ID]
 	if ok {
 		return
@@ -35,12 +36,12 @@ func AddPlayer(player Player) {
 	return
 }
 
-func PlayerByID(playerID string) (player Player, ok bool) {
+func PlayerByID(playerID string) (player *Player, ok bool) {
 	player, ok = playerMap[playerID]
 	return
 }
 
-func PlayerByName(name string) (player Player, ok bool) {
+func PlayerByName(name string) (player *Player, ok bool) {
 	player, ok = playerNameMap[name]
 	return
 }
