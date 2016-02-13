@@ -16,7 +16,7 @@ func TestRegisterMatch(t *testing.T) {
 	winner := foosbot.NewTeam(p1, p2)
 	looser := foosbot.NewTeam(p3, p4)
 	match := foosbot.NewMatch(winner, looser)
-	foosbot.AddMatch(match)
+	foosbot.AddMatchWithHistory(match)
 
 	match, ok := foosbot.MatchByTeams(winner, looser)
 	assert.True(t, ok)

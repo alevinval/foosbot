@@ -52,12 +52,11 @@ func NewMatch(winner, looser *Team) *Match {
 	return match
 }
 
-func AddMatch(match *Match) {
-	defer func() {
-		MatchHistory = append(MatchHistory, match.ID)
-	}()
+func AddMatch(match *Match, entry *HistoryEntry) {
+	addHistoryEntry(entry)
 	m, ok := MatchesMap[match.ID]
 	if ok {
+		match = m
 		m.N++
 		return
 	}
@@ -68,6 +67,11 @@ func AddMatch(match *Match) {
 		AddTeam(team)
 	}
 	return
+}
+
+func AddMatchWithHistory(match *Match) {
+	entry := NewHistoryEntry(match)
+	AddMatch(match, entry)
 }
 
 func MatchByID(id string) (*Match, bool) {
@@ -81,7 +85,7 @@ func MatchByTeams(a, b *Team) (match *Match, ok bool) {
 	return
 }
 
-func MatchesWithTeam(t *Team) (foundMatches []*Match) {
+func MatchesWithTeam(t *Team) (matches []*Match, history []*HistoryEntry) {
 	outcomes := []string{}
 	for _, match := range Matches {
 		for _, team := range match.Teams {
@@ -91,13 +95,14 @@ func MatchesWithTeam(t *Team) (foundMatches []*Match) {
 			}
 		}
 	}
-	for _, matchID := range MatchHistory {
-		if in(outcomes, matchID) {
-			m, _ := MatchByID(matchID)
-			foundMatches = append(foundMatches, m)
+	for _, entry := range History {
+		if in(outcomes, entry.MatchID) {
+			m, _ := MatchByID(entry.MatchID)
+			matches = append(matches, m)
+			history = append(history, entry)
 		}
 	}
-	return
+	return matches, history
 }
 
 func in(arr []string, m string) bool {

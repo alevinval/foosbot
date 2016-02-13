@@ -9,14 +9,14 @@ import (
 )
 
 type State struct {
-	Matches      []*Match
-	MatchHistory []string
+	Matches []*Match
+	History []*HistoryEntry
 }
 
 var (
-	Matches      = []*Match{}
-	MatchHistory = []string{}
-	MatchesMap   = map[string]*Match{}
+	Matches    = []*Match{}
+	History    = []*HistoryEntry{}
+	MatchesMap = map[string]*Match{}
 
 	Teams    = []*Team{}
 	TeamsMap = map[string]*Team{}
@@ -28,7 +28,7 @@ var (
 
 func Reset() {
 	Matches = []*Match{}
-	MatchHistory = []string{}
+	History = []*HistoryEntry{}
 	MatchesMap = map[string]*Match{}
 
 	Teams = []*Team{}
@@ -40,7 +40,7 @@ func Reset() {
 }
 
 func Store() {
-	s := State{Matches: Matches, MatchHistory: MatchHistory}
+	s := State{Matches: Matches, History: History}
 
 	log.Println("serialising database")
 	data, err := json.Marshal(s)
@@ -83,14 +83,14 @@ func Load() {
 	bar.Finish()
 
 	log.Println("rebuilding match history")
-	bar = pb.StartNew(len(s.MatchHistory))
-	for _, matchID := range s.MatchHistory {
-		match, ok := matchIndex[matchID]
+	bar = pb.StartNew(len(s.History))
+	for _, entry := range s.History {
+		match, ok := matchIndex[entry.MatchID]
 		if !ok {
-			log.Panicf("corrupted history %q", matchID)
+			log.Panicf("corrupted history %q", entry.MatchID)
 		}
 		bar.Increment()
-		AddMatch(match)
+		AddMatch(match, entry)
 	}
 	bar.Finish()
 }

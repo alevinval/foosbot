@@ -7,6 +7,7 @@ import (
 	"github.com/alevinval/bobbie/slack"
 	"github.com/alevinval/foosbot"
 	"github.com/alevinval/foosbot/parsing"
+	"github.com/dustin/go-humanize"
 	"log"
 	"os"
 	"os/signal"
@@ -20,7 +21,7 @@ func handleMatch(parser *parsing.Parser, client *slack.Client, message slack.Mes
 		return fmt.Sprintf("%s", err)
 	}
 	for i := range matches {
-		foosbot.AddMatch(matches[i])
+		foosbot.AddMatchWithHistory(matches[i])
 	}
 	matchIds := []string{}
 	for i := range matches {
@@ -42,16 +43,18 @@ func handleStats(parser *parsing.Parser, client *slack.Client, message slack.Mes
 		return response
 	}
 	response := fmt.Sprintf("%s has played %d matches, with a stunning record of %d wins and "+
-		"%d defeats.\nRecent match history:\n", team, stats.PlayedGames, stats.Wins, stats.Defeats)
+		"%d defeats.\nRecent match history:\n",
+		team, stats.PlayedGames, stats.Wins, stats.Defeats)
 	for i := range stats.Matches {
 		if i > 3 {
 			break
 		}
 		match := stats.Matches[len(stats.Matches)-1-i]
+		history := stats.History[len(stats.History)-1-i]
 		if match.WinnerID == team.ID {
-			response += fmt.Sprintf("- Won against %s\n", match.Looser())
+			response += fmt.Sprintf("- Won against %s (%s)\n", match.Looser(), humanize.Time(history.PlayedAt))
 		} else {
-			response += fmt.Sprintf("- Lost against %s\n", match.Winner())
+			response += fmt.Sprintf("- Lost against %s (%s)\n", match.Winner(), humanize.Time(history.PlayedAt))
 		}
 	}
 	return response

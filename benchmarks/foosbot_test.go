@@ -51,7 +51,7 @@ func randomMatches(n int) []*foosbot.Match {
 
 func addMatches(m []*foosbot.Match) {
 	for k := 0; k < len(m); k++ {
-		foosbot.AddMatch(m[k])
+		foosbot.AddMatchWithHistory(m[k])
 
 	}
 }
