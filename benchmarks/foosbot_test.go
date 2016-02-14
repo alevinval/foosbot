@@ -9,11 +9,11 @@ import (
 )
 
 var (
-	letters = [][]rune{
-		[]rune("abcd"),
-		[]rune("efgh"),
-		[]rune("ijkl"),
-		[]rune("mnop"),
+	letters = []string{
+		"abcd",
+		"efgh",
+		"ijkl",
+		"mnop",
 	}
 	_ = setup()
 )
@@ -54,27 +54,26 @@ func addMatches(c *foosbot.Context, m []*foosbot.Match) {
 		c.AddMatchWithHistory(m[k])
 	}
 }
-func BenchmarkCreate100KHistory(b *testing.B) {
+func BenchmarkCreateBigHistory(b *testing.B) {
 	c := foosbot.NewContext()
-	m := randomMatches(10000)
+	m := randomMatches(100000)
 	benchmarkBuildHistory(b, c, m)
 }
 
-func BenchmarkStore100KMatches(b *testing.B) {
+func BenchmarkStoreBigHistory(b *testing.B) {
 	c := foosbot.NewContext()
-	m := randomMatches(10000)
+	m := randomMatches(100000)
 	addMatches(c, m)
 	for i := 0; i < b.N; i++ {
 		benchmarkStoreState(b, c)
 	}
 }
 
-func BenchmarkLoad100KMatches(b *testing.B) {
+func BenchmarkLoadBigHistory(b *testing.B) {
 	c := foosbot.NewContext()
-	m := randomMatches(10000)
+	m := randomMatches(100000)
 	addMatches(c, m)
 	c.Store()
-	c.Reset()
 	benchmarkLoadState(b, c)
 }
 
@@ -98,6 +97,7 @@ func benchmarkLoadState(b *testing.B, c *foosbot.Context) {
 	b.ResetTimer()
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
+		c.Reset()
 		c.Load()
 	}
 }

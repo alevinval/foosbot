@@ -1,8 +1,8 @@
 package foosbot
 
 import (
+	"compress/gzip"
 	"encoding/json"
-	"log"
 	"os"
 )
 
@@ -12,25 +12,36 @@ type repository struct {
 }
 
 func storeRepository(c *Context) error {
-	r := repository{History: c.History, Matches: c.Matches}
-	data, err := json.Marshal(r)
+	repo := &repository{History: c.History, Matches: c.Matches}
+	f, err := os.OpenFile(c.RepositoryName, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.ModePerm)
 	if err != nil {
-		log.Printf("error serializing repository: %s", err)
 		return err
 	}
-	return writeGzFile(c.RepositoryName, data)
+	defer f.Close()
+
+	gzw, err := gzip.NewWriterLevel(f, gzip.BestSpeed)
+	if err != nil {
+		return err
+	}
+	defer gzw.Close()
+
+	return json.NewEncoder(gzw).Encode(repo)
 }
 
 func loadRepository(path string) (*repository, error) {
-	data, err := readGzFile(path)
-	if os.IsNotExist(err) {
-		log.Printf("repository not found")
-		return nil, err
-	} else if err != nil {
-		log.Printf("error reading repository: %s", err)
+	f, err := os.Open(path)
+	if err != nil {
 		return nil, err
 	}
-	r := new(repository)
-	err = json.Unmarshal(data, r)
-	return r, err
+	defer f.Close()
+
+	gzr, err := gzip.NewReader(f)
+	if err != nil {
+		return nil, err
+	}
+	defer gzr.Close()
+
+	repo := new(repository)
+	err = json.NewDecoder(gzr).Decode(repo)
+	return repo, err
 }

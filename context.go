@@ -3,6 +3,7 @@ package foosbot
 import (
 	"github.com/cheggaaa/pb"
 	"log"
+	"os"
 )
 
 const (
@@ -59,7 +60,10 @@ func (c *Context) Store() error {
 func (c *Context) Load() error {
 	log.Println("loading repository")
 	repo, err := loadRepository(c.RepositoryName)
-	if err != nil {
+	if os.IsNotExist(err) {
+		log.Printf("repository not found")
+		return nil
+	} else if err != nil {
 		log.Printf("error loading repository: %s", err)
 		return err
 	}
