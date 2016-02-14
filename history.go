@@ -22,5 +22,5 @@ func NewHistoryEntry(m *Match) *HistoryEntry {
 }
 
 func addHistoryEntry(entry *HistoryEntry) {
-	History = append(History, entry)
+	Context.History = append(Context.History, entry)
 }

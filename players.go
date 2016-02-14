@@ -20,22 +20,22 @@ func NewPlayer(name string) *Player {
 }
 
 func AddPlayer(player *Player) {
-	_, ok := PlayersMap[player.ID]
+	_, ok := Context.PlayersMap[player.ID]
 	if ok {
 		return
 	}
-	Players = append(Players, player)
-	PlayersMap[player.ID] = player
-	PlayersNameMap[player.Name] = player
+	Context.Players = append(Context.Players, player)
+	Context.PlayersMap[player.ID] = player
+	Context.PlayersNameMap[player.Name] = player
 	return
 }
 
 func PlayerByID(playerID string) (player *Player, ok bool) {
-	player, ok = PlayersMap[playerID]
+	player, ok = Context.PlayersMap[playerID]
 	return
 }
 
 func PlayerByName(name string) (player *Player, ok bool) {
-	player, ok = PlayersNameMap[name]
+	player, ok = Context.PlayersNameMap[name]
 	return
 }

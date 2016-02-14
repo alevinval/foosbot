@@ -101,16 +101,16 @@ func run() {
 func periodicBackup() {
 	for {
 		time.Sleep(1 * time.Hour)
-		foosbot.Store()
+		foosbot.Context.Store()
 	}
 }
 
 func main() {
-	foosbot.Load()
+	foosbot.Context.Load()
 	go run()
 	go periodicBackup()
 	<-sysExit()
-	foosbot.Store()
+	foosbot.Context.Store()
 }
 
 func sysExit() <-chan os.Signal {

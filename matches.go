@@ -54,15 +54,15 @@ func NewMatch(winner, looser *Team) *Match {
 
 func AddMatch(match *Match, entry *HistoryEntry) {
 	addHistoryEntry(entry)
-	m, ok := MatchesMap[match.ID]
+	m, ok := Context.MatchesMap[match.ID]
 	if ok {
 		match = m
 		m.N++
 		return
 	}
 	match.N++
-	Matches = append(Matches, match)
-	MatchesMap[match.ID] = match
+	Context.Matches = append(Context.Matches, match)
+	Context.MatchesMap[match.ID] = match
 	for _, team := range match.Teams {
 		AddTeam(team)
 	}
@@ -75,19 +75,19 @@ func AddMatchWithHistory(match *Match) {
 }
 
 func MatchByID(id string) (*Match, bool) {
-	m, ok := MatchesMap[id]
+	m, ok := Context.MatchesMap[id]
 	return m, ok
 }
 
 func MatchByTeams(a, b *Team) (match *Match, ok bool) {
 	teamID := buildMatchId(a, b)
-	match, ok = MatchesMap[teamID]
+	match, ok = Context.MatchesMap[teamID]
 	return
 }
 
 func MatchesWithTeam(t *Team) (matches []*Match, history []*HistoryEntry) {
 	outcomes := []string{}
-	for _, match := range Matches {
+	for _, match := range Context.Matches {
 		for _, team := range match.Teams {
 			if t.ID == team.ID {
 				outcomes = append(outcomes, match.ID)
@@ -95,7 +95,7 @@ func MatchesWithTeam(t *Team) (matches []*Match, history []*HistoryEntry) {
 			}
 		}
 	}
-	for _, entry := range History {
+	for _, entry := range Context.History {
 		if in(outcomes, entry.MatchID) {
 			m, _ := MatchByID(entry.MatchID)
 			matches = append(matches, m)

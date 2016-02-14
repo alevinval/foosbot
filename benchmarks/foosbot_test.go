@@ -71,8 +71,8 @@ func BenchmarkStore100KMatches(b *testing.B) {
 func BenchmarkLoad100KMatches(b *testing.B) {
 	m := randomMatches(100000)
 	addMatches(m)
-	foosbot.Store()
-	foosbot.Reset()
+	foosbot.Context.Store()
+	foosbot.Context.Reset()
 	benchmarkLoadState(b)
 }
 
@@ -88,7 +88,7 @@ func benchmarkStoreState(b *testing.B) {
 	b.ResetTimer()
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		foosbot.Store()
+		foosbot.Context.Store()
 	}
 }
 
@@ -96,6 +96,6 @@ func benchmarkLoadState(b *testing.B) {
 	b.ResetTimer()
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		foosbot.Load()
+		foosbot.Context.Load()
 	}
 }

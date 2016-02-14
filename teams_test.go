@@ -7,7 +7,7 @@ import (
 )
 
 func TestRegisterTeam(t *testing.T) {
-	foosbot.Reset()
+	foosbot.Context.Reset()
 
 	p1 := foosbot.NewPlayer("p1")
 	p2 := foosbot.NewPlayer("p2")
