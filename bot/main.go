@@ -62,6 +62,7 @@ func handleStats(parser *parsing.Parser, client *slack.Client, message slack.Mes
 
 func loadAccessToken() (string, error) {
 	tBytes, err := ioutil.ReadFile(".access_token")
+	tBytes = bytes.Trim(tBytes, " \n\r\t")
 	return string(tBytes), err
 }
 
