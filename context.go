@@ -3,7 +3,6 @@ package foosbot
 import (
 	"encoding/json"
 	"github.com/cheggaaa/pb"
-	"io/ioutil"
 	"log"
 	"os"
 )
@@ -12,7 +11,7 @@ const (
 	DefaultDatabaseName = "foosbot.db"
 )
 
-type Repository struct {
+type repository struct {
 	History []*HistoryEntry `json:"history"`
 	Matches []*Match        `json:"matches"`
 }
@@ -53,53 +52,47 @@ func newContext() *context {
 	return c
 }
 
-func (c *context) Store() {
-	s := Repository{History: Context.History, Matches: Context.Matches}
-
-	log.Println("serialising database")
-	data, err := json.Marshal(s)
+func (c *context) Store() error {
+	log.Printf("storing repository")
+	repo := repository{History: Context.History, Matches: Context.Matches}
+	data, err := json.Marshal(repo)
 	if err != nil {
-		log.Printf("cannot store state: %s", err)
-		return
+		log.Printf("error serializing repository: %s", err)
+		return err
 	}
-
-	log.Println("dumping database")
-	err = ioutil.WriteFile(c.DatabaseName, data, os.ModePerm)
-	if err != nil {
-		log.Fatalf("cannot store state: %s", err)
-		return
-	}
+	writeGzFile(c.DatabaseName, data)
+	return nil
 }
 
-func (c *context) Load() {
-	log.Printf("reading database")
-	data, err := ioutil.ReadFile(c.DatabaseName)
-	if err != nil {
-		log.Printf("cannot load state: %s", err)
-		return
+func (c *context) Load() error {
+	log.Println("loading repository")
+	data, err := readGzFile(c.DatabaseName)
+	if os.IsNotExist(err) {
+		log.Printf("repository not found")
+		return nil
+	} else if err != nil {
+		log.Printf("error reading repository: %s", err)
+		return err
 	}
 
-	log.Printf("loading database")
-	repository := new(Repository)
+	repository := new(repository)
 	err = json.Unmarshal(data, repository)
 	if err != nil {
-		log.Printf("cannot load state: %s", err)
-		return
+		log.Printf("error loading repository: %s", err)
+		return err
 	}
-	matchIndex := map[string]*Match{}
 
-	log.Println("loading matches")
+	log.Println("building match history")
+	loadedMatches := map[string]*Match{}
 	bar := pb.StartNew(len(repository.Matches))
 	for _, match := range repository.Matches {
-		matchIndex[match.ID] = match
+		loadedMatches[match.ID] = match
 		bar.Increment()
 	}
 	bar.Finish()
-
-	log.Println("rebuilding match history")
 	bar = pb.StartNew(len(repository.History))
 	for _, entry := range repository.History {
-		match, ok := matchIndex[entry.MatchID]
+		match, ok := loadedMatches[entry.MatchID]
 		if !ok {
 			log.Panicf("corrupted history %q", entry.MatchID)
 		}
@@ -107,4 +100,6 @@ func (c *context) Load() {
 		bar.Increment()
 	}
 	bar.Finish()
+
+	return nil
 }

@@ -52,16 +52,15 @@ func randomMatches(n int) []*foosbot.Match {
 func addMatches(m []*foosbot.Match) {
 	for k := 0; k < len(m); k++ {
 		foosbot.AddMatchWithHistory(m[k])
-
 	}
 }
 func BenchmarkCreate100KHistory(b *testing.B) {
-	m := randomMatches(100000)
+	m := randomMatches(10000)
 	benchmarkBuildHistory(b, m)
 }
 
 func BenchmarkStore100KMatches(b *testing.B) {
-	m := randomMatches(100000)
+	m := randomMatches(10000)
 	addMatches(m)
 	for i := 0; i < b.N; i++ {
 		benchmarkStoreState(b)
@@ -69,7 +68,7 @@ func BenchmarkStore100KMatches(b *testing.B) {
 }
 
 func BenchmarkLoad100KMatches(b *testing.B) {
-	m := randomMatches(100000)
+	m := randomMatches(10000)
 	addMatches(m)
 	foosbot.Context.Store()
 	foosbot.Context.Reset()

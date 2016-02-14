@@ -60,13 +60,26 @@ func handleStats(parser *parsing.Parser, client *slack.Client, message slack.Mes
 	return response
 }
 
-func loadAccessToken() (string, error) {
+func loadToken() (string, error) {
 	tBytes, err := ioutil.ReadFile(".access_token")
 	tBytes = bytes.Trim(tBytes, " \n\r\t")
 	return string(tBytes), err
 }
 
-func run(client *slack.Client) {
+func backup() {
+	for {
+		time.Sleep(1 * time.Hour)
+		foosbot.Context.Store()
+	}
+}
+
+func exit() <-chan os.Signal {
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, os.Interrupt)
+	return ch
+}
+
+func bot(client *slack.Client) {
 	log.Printf("connected to slack")
 	gNames := []string{}
 	for _, group := range client.Groups() {
@@ -98,15 +111,15 @@ func run(client *slack.Client) {
 	}
 }
 
-func periodicBackup() {
-	for {
-		time.Sleep(1 * time.Hour)
-		foosbot.Context.Store()
-	}
-}
-
 func main() {
-	token, err := loadAccessToken()
+	err := foosbot.Context.Load()
+	if err != nil {
+		log.Printf("cannot load repository")
+		return
+	}
+	go backup()
+
+	token, err := loadToken()
 	if err != nil {
 		log.Printf("cannot open slack access token: %s", err)
 		return
@@ -117,15 +130,12 @@ func main() {
 		log.Printf("cannot connect to slack: %s", err)
 		return
 	}
-	foosbot.Context.Load()
-	go run(client)
-	go periodicBackup()
-	<-sysExit()
-	foosbot.Context.Store()
-}
+	go bot(client)
 
-func sysExit() <-chan os.Signal {
-	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, os.Interrupt)
-	return ch
+	<-exit()
+	err = foosbot.Context.Store()
+	if err != nil {
+		log.Printf("cannot store repository")
+		return
+	}
 }
