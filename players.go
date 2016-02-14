@@ -19,23 +19,23 @@ func NewPlayer(name string) *Player {
 	return player
 }
 
-func AddPlayer(player *Player) {
-	_, ok := Context.PlayersMap[player.ID]
+func (c *Context) AddPlayer(player *Player) {
+	_, ok := c.PlayersMap[player.ID]
 	if ok {
 		return
 	}
-	Context.Players = append(Context.Players, player)
-	Context.PlayersMap[player.ID] = player
-	Context.PlayersNameMap[player.Name] = player
+	c.Players = append(c.Players, player)
+	c.PlayersMap[player.ID] = player
+	c.PlayersNameMap[player.Name] = player
 	return
 }
 
-func PlayerByID(playerID string) (player *Player, ok bool) {
-	player, ok = Context.PlayersMap[playerID]
+func (c *Context) PlayerByID(playerID string) (player *Player, ok bool) {
+	player, ok = c.PlayersMap[playerID]
 	return
 }
 
-func PlayerByName(name string) (player *Player, ok bool) {
-	player, ok = Context.PlayersNameMap[name]
+func (c *Context) PlayerByName(name string) (player *Player, ok bool) {
+	player, ok = c.PlayersNameMap[name]
 	return
 }

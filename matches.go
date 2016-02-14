@@ -52,42 +52,42 @@ func NewMatch(winner, looser *Team) *Match {
 	return match
 }
 
-func AddMatch(match *Match, entry *HistoryEntry) {
-	addHistoryEntry(entry)
-	m, ok := Context.MatchesMap[match.ID]
+func (c *Context) AddMatch(match *Match, entry *HistoryEntry) {
+	c.addHistoryEntry(entry)
+	m, ok := c.MatchesMap[match.ID]
 	if ok {
 		match = m
 		m.N++
 		return
 	}
 	match.N++
-	Context.Matches = append(Context.Matches, match)
-	Context.MatchesMap[match.ID] = match
+	c.Matches = append(c.Matches, match)
+	c.MatchesMap[match.ID] = match
 	for _, team := range match.Teams {
-		AddTeam(team)
+		c.AddTeam(team)
 	}
 	return
 }
 
-func AddMatchWithHistory(match *Match) {
+func (c *Context) AddMatchWithHistory(match *Match) {
 	entry := NewHistoryEntry(match)
-	AddMatch(match, entry)
+	c.AddMatch(match, entry)
 }
 
-func MatchByID(id string) (*Match, bool) {
-	m, ok := Context.MatchesMap[id]
+func (c *Context) MatchByID(id string) (*Match, bool) {
+	m, ok := c.MatchesMap[id]
 	return m, ok
 }
 
-func MatchByTeams(a, b *Team) (match *Match, ok bool) {
+func (c *Context) MatchByTeams(a, b *Team) (match *Match, ok bool) {
 	teamID := buildMatchId(a, b)
-	match, ok = Context.MatchesMap[teamID]
+	match, ok = c.MatchesMap[teamID]
 	return
 }
 
-func MatchesWithTeam(t *Team) (matches []*Match, history []*HistoryEntry) {
+func (c *Context) MatchesWithTeam(t *Team) (matches []*Match, history []*HistoryEntry) {
 	outcomes := []string{}
-	for _, match := range Context.Matches {
+	for _, match := range c.Matches {
 		for _, team := range match.Teams {
 			if t.ID == team.ID {
 				outcomes = append(outcomes, match.ID)
@@ -95,9 +95,9 @@ func MatchesWithTeam(t *Team) (matches []*Match, history []*HistoryEntry) {
 			}
 		}
 	}
-	for _, entry := range Context.History {
+	for _, entry := range c.History {
 		if in(outcomes, entry.MatchID) {
-			m, _ := MatchByID(entry.MatchID)
+			m, _ := c.MatchByID(entry.MatchID)
 			matches = append(matches, m)
 			history = append(history, entry)
 		}

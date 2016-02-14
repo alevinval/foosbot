@@ -15,46 +15,40 @@ import (
 	"time"
 )
 
-func handleMatch(parser *parsing.Parser, client *slack.Client, message slack.Message) string {
-	matches, err := parser.ParseMatch()
-	if err != nil {
-		return fmt.Sprintf("%s", err)
-	}
+func AddMatches(c *foosbot.Context, matches []*foosbot.Match) string {
 	for i := range matches {
-		foosbot.AddMatchWithHistory(matches[i])
+		c.AddMatchWithHistory(matches[i])
 	}
-	matchIds := []string{}
+	ids := []string{}
 	for i := range matches {
-		matchIds = append(matchIds, matches[i].ShortID())
+		ids = append(ids, matches[i].ShortID())
 	}
-	ids := strings.Join(matchIds, ",")
-	return fmt.Sprintf("%d matches %q registered to history.", len(matches), ids)
+	idsStr := strings.Join(ids, ",")
+	return fmt.Sprintf("%d matches %q registered to history.", len(matches), idsStr)
 
 }
 
-func handleStats(parser *parsing.Parser, client *slack.Client, message slack.Message) string {
-	team, err := parser.ParseStats()
-	if err != nil {
-		return fmt.Sprintf("%s", err)
-	}
-	stats := foosbot.TeamStats(team)
+func GetStats(c *foosbot.Context, team *foosbot.Team) string {
+	stats := c.TeamStats(team)
 	if stats.PlayedGames == 0 {
-		response := fmt.Sprintf("%s hasn't played any match yet.", team)
-		return response
+		return fmt.Sprintf("%s hasn't played any match yet.", team)
 	}
 	response := fmt.Sprintf("%s has played %d matches, with a stunning record of %d wins and "+
-		"%d defeats.\nRecent match history:\n",
-		team, stats.PlayedGames, stats.Wins, stats.Defeats)
+		"%d defeats.\n", team, stats.PlayedGames, stats.Wins, stats.Defeats)
+	response += fmt.Sprintf("Recent match history:\n")
 	for i := range stats.Matches {
-		if i > 3 {
-			break
-		}
-		match := stats.Matches[len(stats.Matches)-1-i]
-		history := stats.History[len(stats.History)-1-i]
+		idx := len(stats.Matches) - 1 - i
+		match := stats.Matches[idx]
+		history := stats.History[idx]
 		if match.WinnerID == team.ID {
-			response += fmt.Sprintf("- Won against %s (%s)\n", match.Looser(), humanize.Time(history.PlayedAt))
+			response += fmt.Sprintf("- Won against %s (%s)\n",
+				match.Looser(), humanize.Time(history.PlayedAt))
 		} else {
-			response += fmt.Sprintf("- Lost against %s (%s)\n", match.Winner(), humanize.Time(history.PlayedAt))
+			response += fmt.Sprintf("- Lost against %s (%s)\n",
+				match.Winner(), humanize.Time(history.PlayedAt))
+		}
+		if i >= 4 {
+			break
 		}
 	}
 	return response
@@ -66,10 +60,10 @@ func loadToken() (string, error) {
 	return string(tBytes), err
 }
 
-func backup() {
+func backup(c *foosbot.Context) {
 	for {
 		time.Sleep(1 * time.Hour)
-		foosbot.Context.Store()
+		c.Store()
 	}
 }
 
@@ -79,7 +73,7 @@ func exit() <-chan os.Signal {
 	return ch
 }
 
-func bot(client *slack.Client) {
+func bot(c *foosbot.Context, client *slack.Client) {
 	log.Printf("connected to slack")
 	gNames := []string{}
 	for _, group := range client.Groups() {
@@ -102,22 +96,33 @@ func bot(client *slack.Client) {
 		}
 		switch token.Type {
 		case parsing.TokenCommandMatch:
-			response := handleMatch(p, client, message)
+			matches, err := p.ParseMatch()
+			if err != nil {
+				client.Respond(message.Channel, err.Error())
+				continue
+			}
+			response := AddMatches(c, matches)
 			client.Respond(message.Channel, response)
 		case parsing.TokenCommandStats:
-			response := handleStats(p, client, message)
+			team, err := p.ParseStats()
+			if err != nil {
+				client.Respond(message.Channel, err.Error())
+				continue
+			}
+			response := GetStats(c, team)
 			client.Respond(message.Channel, response)
 		}
 	}
 }
 
 func main() {
-	err := foosbot.Context.Load()
+	c := foosbot.NewContext()
+	err := c.Load()
 	if err != nil {
 		log.Printf("cannot load repository")
 		return
 	}
-	go backup()
+	go backup(c)
 
 	token, err := loadToken()
 	if err != nil {
@@ -130,10 +135,10 @@ func main() {
 		log.Printf("cannot connect to slack: %s", err)
 		return
 	}
-	go bot(client)
+	go bot(c, client)
 
 	<-exit()
-	err = foosbot.Context.Store()
+	err = c.Store()
 	if err != nil {
 		log.Printf("cannot store repository")
 		return

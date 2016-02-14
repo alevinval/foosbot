@@ -38,27 +38,27 @@ func NewTeam(players ...*Player) *Team {
 	return team
 }
 
-func AddTeam(team *Team) {
-	_, ok := Context.TeamsMap[team.ID]
+func (c *Context) AddTeam(team *Team) {
+	_, ok := c.TeamsMap[team.ID]
 	if ok {
 		return
 	}
-	Context.Teams = append(Context.Teams, team)
-	Context.TeamsMap[team.ID] = team
+	c.Teams = append(c.Teams, team)
+	c.TeamsMap[team.ID] = team
 
 	for _, player := range team.Players {
-		AddPlayer(player)
+		c.AddPlayer(player)
 	}
 	return
 }
 
-func TeamByID(id string) (team *Team, ok bool) {
-	team, ok = Context.TeamsMap[id]
+func (c *Context) TeamByID(id string) (team *Team, ok bool) {
+	team, ok = c.TeamsMap[id]
 	return
 }
 
-func TeamByPlayers(players ...*Player) (team *Team, ok bool) {
+func (c *Context) TeamByPlayers(players ...*Player) (team *Team, ok bool) {
 	teamID := buildTeamId(players...)
-	team, ok = Context.TeamsMap[teamID]
+	team, ok = c.TeamsMap[teamID]
 	return
 }

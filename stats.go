@@ -9,10 +9,10 @@ type teamStats struct {
 	Defeats     int             `json:"defeats"`
 }
 
-func TeamStats(team *Team) *teamStats {
+func (c *Context) TeamStats(team *Team) *teamStats {
 	ts := new(teamStats)
 	ts.Team = team
-	matches, history := MatchesWithTeam(team)
+	matches, history := c.MatchesWithTeam(team)
 	for _, match := range matches {
 		if match.WinnerID == team.ID {
 			ts.Wins++

@@ -7,16 +7,16 @@ import (
 )
 
 func TestRegisterTeam(t *testing.T) {
-	foosbot.Context.Reset()
+	c := foosbot.NewContext()
 
 	p1 := foosbot.NewPlayer("p1")
 	p2 := foosbot.NewPlayer("p2")
 	team := foosbot.NewTeam(p1, p2)
-	foosbot.AddTeam(team)
+	c.AddTeam(team)
 
-	team, ok := foosbot.TeamByPlayers(p1, p2)
+	team, ok := c.TeamByPlayers(p1, p2)
 	assert.True(t, ok)
-	team, ok = foosbot.TeamByID(team.ID)
+	team, ok = c.TeamByID(team.ID)
 	assert.True(t, ok)
 	assert.Equal(t, 2, len(team.Players))
 }

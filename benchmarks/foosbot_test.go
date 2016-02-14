@@ -49,52 +49,55 @@ func randomMatches(n int) []*foosbot.Match {
 	return matches
 }
 
-func addMatches(m []*foosbot.Match) {
+func addMatches(c *foosbot.Context, m []*foosbot.Match) {
 	for k := 0; k < len(m); k++ {
-		foosbot.AddMatchWithHistory(m[k])
+		c.AddMatchWithHistory(m[k])
 	}
 }
 func BenchmarkCreate100KHistory(b *testing.B) {
+	c := foosbot.NewContext()
 	m := randomMatches(10000)
-	benchmarkBuildHistory(b, m)
+	benchmarkBuildHistory(b, c, m)
 }
 
 func BenchmarkStore100KMatches(b *testing.B) {
+	c := foosbot.NewContext()
 	m := randomMatches(10000)
-	addMatches(m)
+	addMatches(c, m)
 	for i := 0; i < b.N; i++ {
-		benchmarkStoreState(b)
+		benchmarkStoreState(b, c)
 	}
 }
 
 func BenchmarkLoad100KMatches(b *testing.B) {
+	c := foosbot.NewContext()
 	m := randomMatches(10000)
-	addMatches(m)
-	foosbot.Context.Store()
-	foosbot.Context.Reset()
-	benchmarkLoadState(b)
+	addMatches(c, m)
+	c.Store()
+	c.Reset()
+	benchmarkLoadState(b, c)
 }
 
-func benchmarkBuildHistory(b *testing.B, m []*foosbot.Match) {
+func benchmarkBuildHistory(b *testing.B, c *foosbot.Context, m []*foosbot.Match) {
 	b.ResetTimer()
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		addMatches(m)
+		addMatches(c, m)
 	}
 }
 
-func benchmarkStoreState(b *testing.B) {
+func benchmarkStoreState(b *testing.B, c *foosbot.Context) {
 	b.ResetTimer()
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		foosbot.Context.Store()
+		c.Store()
 	}
 }
 
-func benchmarkLoadState(b *testing.B) {
+func benchmarkLoadState(b *testing.B, c *foosbot.Context) {
 	b.ResetTimer()
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		foosbot.Context.Load()
+		c.Load()
 	}
 }
