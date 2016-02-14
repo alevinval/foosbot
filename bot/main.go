@@ -3,11 +3,11 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/alevinval/bobbie/auth"
-	"github.com/alevinval/bobbie/slack"
 	"github.com/alevinval/foosbot"
 	"github.com/alevinval/foosbot/parsing"
+	"github.com/alevinval/slack"
 	"github.com/dustin/go-humanize"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/signal"
@@ -60,21 +60,20 @@ func handleStats(parser *parsing.Parser, client *slack.Client, message slack.Mes
 	return response
 }
 
-func run() {
-	accessToken, err := auth.AccessToken()
-	if err != nil {
-		log.Fatalf("error loading access token: %s", err)
-	}
-	client := slack.NewClient(accessToken.AccessToken)
-	client.StartRTM()
-	log.Printf("foosbot: slack rtm started")
-	groupNames := []string{}
-	for _, group := range client.Groups {
-		groupNames = append(groupNames, group.Name)
-	}
-	log.Printf("foosbot running on: %s", groupNames)
+func loadAccessToken() (string, error) {
+	tBytes, err := ioutil.ReadFile(".access_token")
+	return string(tBytes), err
+}
 
-	for message := range client.Messages {
+func run(client *slack.Client) {
+	log.Printf("connected to slack")
+	gNames := []string{}
+	for _, group := range client.Groups() {
+		gNames = append(gNames, group.Name)
+	}
+	log.Printf("foosbot listening on: %s", gNames)
+
+	for message := range client.Receiver() {
 		in := []byte(message.Text)
 		r := bytes.NewReader(in)
 		p := parsing.NewParser(r)
@@ -84,16 +83,16 @@ func run() {
 			continue
 		} else if err != nil {
 			response := fmt.Sprintf("%s", err)
-			client.Say(message.Channel, response)
+			client.Respond(message.Channel, response)
 			continue
 		}
 		switch token.Type {
 		case parsing.TokenCommandMatch:
 			response := handleMatch(p, client, message)
-			client.Say(message.Channel, response)
+			client.Respond(message.Channel, response)
 		case parsing.TokenCommandStats:
 			response := handleStats(p, client, message)
-			client.Say(message.Channel, response)
+			client.Respond(message.Channel, response)
 		}
 	}
 }
@@ -106,8 +105,19 @@ func periodicBackup() {
 }
 
 func main() {
+	token, err := loadAccessToken()
+	if err != nil {
+		log.Printf("cannot open slack access token: %s", err)
+		return
+	}
+
+	client, err := slack.OpenRTM(token)
+	if err != nil {
+		log.Printf("cannot connect to slack: %s", err)
+		return
+	}
 	foosbot.Context.Load()
-	go run()
+	go run(client)
 	go periodicBackup()
 	<-sysExit()
 	foosbot.Context.Store()

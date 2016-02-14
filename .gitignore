@@ -1,4 +1,4 @@
 *.zip
 *.db
-bot/.bobbie
+.access_token
 bot/bot
