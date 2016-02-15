@@ -1,24 +1,17 @@
 package foosbot_test
 
 import (
-	"github.com/alevinval/foosbot"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
-func TestRegisterMatch(t *testing.T) {
-	c := foosbot.NewContext()
+func TestMatchWinners(t *testing.T) {
+	w, l := newTeam("a"), newTeam("b")
+	m := newMatch(w, l)
 
-	p1 := foosbot.NewPlayer("p1")
-	p2 := foosbot.NewPlayer("p2")
-	p3 := foosbot.NewPlayer("p3")
-	p4 := foosbot.NewPlayer("p4")
-	winner := foosbot.NewTeam(p1, p2)
-	looser := foosbot.NewTeam(p3, p4)
-	match := foosbot.NewMatch(winner, looser)
-	c.AddMatchWithHistory(match)
-
-	match, ok := c.MatchByTeams(winner, looser)
-	assert.True(t, ok)
-	assert.Equal(t, match.WinnerID, winner.ID)
+	assert.Equal(t, m.WinnerID, w.ID)
+	assert.True(t, m.IsWinner(w))
+	assert.True(t, m.IsLooser(l))
+	assert.Equal(t, m.Winner(), w)
+	assert.Contains(t, m.Loosers(), l)
 }

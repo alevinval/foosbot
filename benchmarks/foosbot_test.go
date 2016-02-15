@@ -40,8 +40,8 @@ func randomMatches(n int) []*foosbot.Match {
 	for n > 0 {
 		players := randomPlayers(4)
 		rin := rand.Perm(4)
-		t1 := foosbot.NewTeam(players[rin[0]], players[rin[1]])
-		t2 := foosbot.NewTeam(players[rin[2]], players[rin[3]])
+		t1, _ := foosbot.NewTeam(players[rin[0]], players[rin[1]])
+		t2, _ := foosbot.NewTeam(players[rin[2]], players[rin[3]])
 		m := foosbot.NewMatch(t1, t2)
 		matches = append(matches, m)
 		n--

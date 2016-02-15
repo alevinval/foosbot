@@ -88,9 +88,9 @@ func (p *Parser) ParseMatch() ([]*foosbot.Match, error) {
 
 	// Parsing correct, re-create match history
 	p1, p2 := foosbot.NewPlayer(t1Players[0]), foosbot.NewPlayer(t1Players[1])
-	t1 := foosbot.NewTeam(p1, p2)
+	t1, _ := foosbot.NewTeam(p1, p2)
 	p3, p4 := foosbot.NewPlayer(t2Players[0]), foosbot.NewPlayer(t2Players[1])
-	t2 := foosbot.NewTeam(p3, p4)
+	t2, _ := foosbot.NewTeam(p3, p4)
 
 	matches := []*foosbot.Match{}
 	for t1Score > 0 {
@@ -121,7 +121,7 @@ func (p *Parser) ParseStats() (*foosbot.Team, error) {
 	}
 	p1 := foosbot.NewPlayer(p1name)
 	p2 := foosbot.NewPlayer(p2name)
-	team := foosbot.NewTeam(p1, p2)
+	team, _ := foosbot.NewTeam(p1, p2)
 	return team, nil
 }
 

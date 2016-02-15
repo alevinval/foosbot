@@ -20,7 +20,3 @@ func NewHistoryEntry(m *Match) *HistoryEntry {
 	entry.PlayedAt = now
 	return entry
 }
-
-func (c *Context) addHistoryEntry(entry *HistoryEntry) {
-	c.History = append(c.History, entry)
-}

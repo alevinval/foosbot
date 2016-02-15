@@ -11,7 +11,7 @@ func TestRegisterTeam(t *testing.T) {
 
 	p1 := foosbot.NewPlayer("p1")
 	p2 := foosbot.NewPlayer("p2")
-	team := foosbot.NewTeam(p1, p2)
+	team, _ := foosbot.NewTeam(p1, p2)
 	c.AddTeam(team)
 
 	team, ok := c.TeamByPlayers(p1, p2)

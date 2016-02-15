@@ -42,7 +42,7 @@ func GetStats(c *foosbot.Context, team *foosbot.Team) string {
 		history := stats.History[idx]
 		if match.WinnerID == team.ID {
 			response += fmt.Sprintf("- Won against %s (%s)\n",
-				match.Looser(), humanize.Time(history.PlayedAt))
+				match.Loosers()[0], humanize.Time(history.PlayedAt))
 		} else {
 			response += fmt.Sprintf("- Lost against %s (%s)\n",
 				match.Winner(), humanize.Time(history.PlayedAt))
