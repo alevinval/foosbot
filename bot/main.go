@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"github.com/alevinval/foosbot"
 	"github.com/alevinval/foosbot/parsing"
-	"github.com/alevinval/slack"
 	"github.com/dustin/go-humanize"
+	"github.com/nlopes/slack"
 	"io/ioutil"
 	"log"
 	"os"
@@ -15,9 +15,9 @@ import (
 	"time"
 )
 
-func AddMatches(c *foosbot.Context, matches []*foosbot.Match) string {
+func addMatchCommand(ctx *foosbot.Context, matches []*foosbot.Match) string {
 	for i := range matches {
-		c.AddMatchWithHistory(matches[i])
+		ctx.AddMatchWithHistory(matches[i])
 	}
 	ids := []string{}
 	for i := range matches {
@@ -28,13 +28,14 @@ func AddMatches(c *foosbot.Context, matches []*foosbot.Match) string {
 
 }
 
-func GetStats(c *foosbot.Context, team *foosbot.Team) string {
-	stats := c.TeamStats(team)
+func getStatsCommand(ctx *foosbot.Context, team *foosbot.Team) string {
+	stats := ctx.TeamStats(team)
 	if stats.PlayedGames == 0 {
 		return fmt.Sprintf("%s hasn't played any match yet.", team)
 	}
-	response := fmt.Sprintf("%s has played %d matches, with a stunning record of %d wins and "+
-		"%d defeats.\n", team, stats.PlayedGames, stats.Wins, stats.Defeats)
+	response := fmt.Sprintf(
+		"%s has played %d matches, with a stunning record of %d wins and "+
+			"%d defeats.\n", team, stats.PlayedGames, stats.Wins, stats.Defeats)
 	response += fmt.Sprintf("Recent match history:\n")
 	for i := range stats.Matches {
 		idx := len(stats.Matches) - 1 - i
@@ -52,6 +53,37 @@ func GetStats(c *foosbot.Context, team *foosbot.Team) string {
 		}
 	}
 	return response
+}
+
+func process(ctx *foosbot.Context, msg *slack.MessageEvent) (response string) {
+	in := []byte(msg.Text)
+	r := bytes.NewReader(in)
+	p := parsing.NewParser(r)
+
+	token, err := p.ParseCommand()
+	if err == parsing.ErrNotFoosbotCommand {
+		return
+	} else if err != nil {
+		response = fmt.Sprintf("%s", err)
+		return
+	}
+	switch token.Type {
+	case parsing.TokenCommandMatch:
+		matches, err := p.ParseMatch()
+		if err != nil {
+			response = err.Error()
+			return
+		}
+		response = addMatchCommand(ctx, matches)
+	case parsing.TokenCommandStats:
+		team, err := p.ParseStats()
+		if err != nil {
+			response = err.Error()
+			return
+		}
+		response = getStatsCommand(ctx, team)
+	}
+	return
 }
 
 func loadToken() (string, error) {
@@ -73,56 +105,14 @@ func exit() <-chan os.Signal {
 	return ch
 }
 
-func bot(c *foosbot.Context, client *slack.Client) {
-	log.Printf("connected to slack")
-	gNames := []string{}
-	for _, group := range client.Groups() {
-		gNames = append(gNames, group.Name)
-	}
-	log.Printf("foosbot listening on: %s", gNames)
-
-	for message := range client.Receiver() {
-		in := []byte(message.Text)
-		r := bytes.NewReader(in)
-		p := parsing.NewParser(r)
-
-		token, err := p.ParseCommand()
-		if err == parsing.ErrNotFoosbotCommand {
-			continue
-		} else if err != nil {
-			response := fmt.Sprintf("%s", err)
-			client.Respond(message.Channel, response)
-			continue
-		}
-		switch token.Type {
-		case parsing.TokenCommandMatch:
-			matches, err := p.ParseMatch()
-			if err != nil {
-				client.Respond(message.Channel, err.Error())
-				continue
-			}
-			response := AddMatches(c, matches)
-			client.Respond(message.Channel, response)
-		case parsing.TokenCommandStats:
-			team, err := p.ParseStats()
-			if err != nil {
-				client.Respond(message.Channel, err.Error())
-				continue
-			}
-			response := GetStats(c, team)
-			client.Respond(message.Channel, response)
-		}
-	}
-}
-
 func main() {
-	c := foosbot.NewContext()
-	err := c.Load()
+	ctx := foosbot.NewContext()
+	err := ctx.Load()
 	if err != nil {
 		log.Printf("cannot load repository")
 		return
 	}
-	go backup(c)
+	go backup(ctx)
 
 	token, err := loadToken()
 	if err != nil {
@@ -130,15 +120,38 @@ func main() {
 		return
 	}
 
-	client, err := slack.OpenRTM(token)
-	if err != nil {
-		log.Printf("cannot connect to slack: %s", err)
-		return
-	}
-	go bot(c, client)
+	api := slack.New(token)
+	rtm := api.NewRTM()
+	go rtm.ManageConnection()
 
-	<-exit()
-	err = c.Store()
+	incomingExit := exit()
+Loop:
+	for {
+		select {
+		case <-incomingExit:
+			break Loop
+		case msg := <-rtm.IncomingEvents:
+			switch ev := msg.Data.(type) {
+			case *slack.HelloEvent:
+			case *slack.ConnectedEvent:
+			case *slack.PresenceChangeEvent:
+			case *slack.LatencyReport:
+			case *slack.RTMError:
+			case *slack.MessageEvent:
+				fmt.Printf("Message: %v\n", ev.Text)
+				response := process(ctx, ev)
+				rtm.SendMessage(rtm.NewOutgoingMessage(response, ev.Channel))
+			case *slack.InvalidAuthEvent:
+				fmt.Printf("Invalid credentials")
+				break Loop
+			default:
+				// Ignore other events.
+				// fmt.Printf("Unexpected: %v\n", msg.Data)
+			}
+		}
+	}
+
+	err = ctx.Store()
 	if err != nil {
 		log.Printf("cannot store repository")
 		return
