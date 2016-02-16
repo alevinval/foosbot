@@ -12,7 +12,7 @@ type teamStats struct {
 func (c *Context) TeamStats(team *Team) *teamStats {
 	ts := new(teamStats)
 	ts.Team = team
-	matches, history := c.MatchesWithTeam(team)
+	matches, history := c.Query.MatchesWithTeam(team)
 	for _, match := range matches {
 		if match.WinnerID == team.ID {
 			ts.Wins++

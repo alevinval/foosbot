@@ -36,54 +36,58 @@ func (p *Parser) ParseCommand() (Token, error) {
 	return token, nil
 }
 
-func (p *Parser) ParseMatch() ([]*foosbot.Match, error) {
+func (p *Parser) ParseMatch() (matches []*foosbot.Match, err error) {
 	var t1Score, t2Score int64
 	p1name, err := p.parsePlayerName()
 	if err != nil {
-		return nil, err
+		return
 	}
 	p2name, err := p.parsePlayerName()
 	if err != nil {
-		return nil, err
+		return
 	}
 	t1Score, err = p.parseScore()
 	if err != nil {
-		return nil, err
+		return
 	}
 	err = p.parseVs()
 	if err != nil {
-		return nil, err
+		return
 	}
 	t2Score, err = p.parseScore()
 	if err != nil {
-		return nil, err
+		return
 	}
 	p3name, err := p.parsePlayerName()
 	if err != nil {
-		return nil, err
+		return
 	}
 	p4name, err := p.parsePlayerName()
 	if err != nil {
-		return nil, err
+		return
 	}
 	err = p.parseEof()
 	if err != nil {
-		return nil, err
+		return
 	}
 	t1Players := []string{p1name, p2name}
 	t2Players := []string{p3name, p4name}
 
 	if t1Players[0] == t1Players[1] {
-		return nil, newCommandError(fmt.Sprintf("player %q found twice in team 1", t1Players[0]))
+		err = newCommandError(fmt.Sprintf("player %q found twice in team 1", t1Players[0]))
+		return
 	}
 	if t2Players[0] == t2Players[1] {
-		return nil, newCommandError(fmt.Sprintf("player %q found twice in team 2", t2Players[0]))
+		err = newCommandError(fmt.Sprintf("player %q found twice in team 2", t2Players[0]))
+		return
 	}
 	if in(t1Players[0], t2Players) {
-		return nil, newCommandError(fmt.Sprintf("player %q cannot be in both teams", t1Players[0]))
+		err = newCommandError(fmt.Sprintf("player %q cannot be in both teams", t1Players[0]))
+		return
 	}
 	if in(t1Players[1], t2Players) {
-		return nil, newCommandError(fmt.Sprintf("player %q cannot be in both teams", t1Players[1]))
+		err = newCommandError(fmt.Sprintf("player %q cannot be in both teams", t1Players[1]))
+		return
 	}
 
 	// Parsing correct, re-create match history
@@ -92,7 +96,6 @@ func (p *Parser) ParseMatch() ([]*foosbot.Match, error) {
 	p3, p4 := foosbot.NewPlayer(t2Players[0]), foosbot.NewPlayer(t2Players[1])
 	t2, _ := foosbot.NewTeam(p3, p4)
 
-	matches := []*foosbot.Match{}
 	for t1Score > 0 {
 		match := foosbot.NewMatch(t1, t2)
 		matches = append(matches, match)

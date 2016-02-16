@@ -25,7 +25,7 @@ func TestRegisterMatch(t *testing.T) {
 	c := foosbot.NewContext()
 	c.AddMatchWithHistory(m)
 
-	match, ok := c.MatchByTeams(w, l)
+	match, ok := c.Query.MatchByTeams(w, l)
 	assert.True(t, ok)
 	assert.Equal(t, match.WinnerID, w.ID)
 }

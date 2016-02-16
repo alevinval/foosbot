@@ -14,9 +14,9 @@ func TestRegisterTeam(t *testing.T) {
 	team, _ := foosbot.NewTeam(p1, p2)
 	c.AddTeam(team)
 
-	team, ok := c.TeamByPlayers(p1, p2)
+	team, ok := c.Query.TeamByPlayers(p1, p2)
 	assert.True(t, ok)
-	team, ok = c.TeamByID(team.ID)
+	team, ok = c.Query.TeamByID(team.ID)
 	assert.True(t, ok)
 	assert.Equal(t, 2, len(team.Players))
 }

@@ -1,11 +1,18 @@
 package foosbot
 
+import (
+	"github.com/cheggaaa/pb"
+	"log"
+	"os"
+)
+
 const (
 	DefaultRepositoryName = "foosbot.db"
 )
 
 type Context struct {
 	RepositoryName string
+	Query          Queries
 
 	// Actual context
 	History        []*HistoryEntry
@@ -35,6 +42,7 @@ func NewContext() *Context {
 
 func newContext() *Context {
 	c := new(Context)
+	c.Query = Queries{c}
 	c.RepositoryName = DefaultRepositoryName
 	c.Reset()
 	return c
@@ -85,4 +93,46 @@ func (c *Context) AddPlayer(player *Player) {
 	c.PlayersMap[player.ID] = player
 	c.PlayersNameMap[player.Name] = player
 	return
+}
+
+func (c *Context) Store() error {
+	log.Println("storing repository")
+	err := storeRepository(c)
+	if err != nil {
+		log.Printf("error storing repository: %s", err)
+		return err
+	}
+	return nil
+}
+
+func (c *Context) Load() error {
+	log.Println("loading repository")
+	repo, err := loadRepository(c.RepositoryName)
+	if os.IsNotExist(err) {
+		log.Printf("repository not found")
+		return nil
+	} else if err != nil {
+		log.Printf("error loading repository: %s", err)
+		return err
+	}
+	log.Println("building match history")
+	loadedMatches := map[string]*Match{}
+	bar := pb.StartNew(len(repo.Matches))
+	for _, match := range repo.Matches {
+		loadedMatches[match.ID] = match
+		bar.Increment()
+	}
+	bar.Finish()
+
+	bar = pb.StartNew(len(repo.History))
+	for _, historyEntry := range repo.History {
+		match, ok := loadedMatches[historyEntry.MatchID]
+		if !ok {
+			log.Panicf("corrupted history %q", historyEntry.MatchID)
+		}
+		c.AddMatch(match, historyEntry)
+		bar.Increment()
+	}
+	bar.Finish()
+	return nil
 }

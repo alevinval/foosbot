@@ -138,7 +138,7 @@ Loop:
 			case *slack.LatencyReport:
 			case *slack.RTMError:
 			case *slack.MessageEvent:
-				fmt.Printf("Message: %v\n", ev.Text)
+				fmt.Printf("%s: %v\n", ev.User, ev.Text)
 				response := process(ctx, ev)
 				rtm.SendMessage(rtm.NewOutgoingMessage(response, ev.Channel))
 			case *slack.InvalidAuthEvent:

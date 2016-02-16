@@ -35,6 +35,6 @@ func (t tokenType) String() string {
 	case TokenIllegal:
 		return "illegal token"
 	default:
-		return "-unkown-"
+		return "unkown token"
 	}
 }
