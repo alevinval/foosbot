@@ -35,34 +35,34 @@ func randomPlayers(n int) []*foosbot.Player {
 	return players
 }
 
-func randomMatches(n int) []*foosbot.Match {
-	matches := []*foosbot.Match{}
+func randomOutcomes(n int) []*foosbot.Outcome {
+	outcomes := []*foosbot.Outcome{}
 	for n > 0 {
 		players := randomPlayers(4)
 		rin := rand.Perm(4)
 		t1, _ := foosbot.NewTeam(players[rin[0]], players[rin[1]])
 		t2, _ := foosbot.NewTeam(players[rin[2]], players[rin[3]])
-		m := foosbot.NewMatch(t1, t2)
-		matches = append(matches, m)
+		outcome, _ := foosbot.NewOutcome(t1, t2)
+		outcomes = append(outcomes, outcome)
 		n--
 	}
-	return matches
+	return outcomes
 }
 
-func addMatches(c *foosbot.Context, m []*foosbot.Match) {
-	for k := 0; k < len(m); k++ {
-		c.AddMatchWithHistory(m[k])
+func addMatches(c *foosbot.Context, outcomes []*foosbot.Outcome) {
+	for k := 0; k < len(outcomes); k++ {
+		c.AddMatchWithOutcome(outcomes[k])
 	}
 }
 func BenchmarkCreateBigHistory(b *testing.B) {
 	c := foosbot.NewContext()
-	m := randomMatches(100000)
+	m := randomOutcomes(100000)
 	benchmarkBuildHistory(b, c, m)
 }
 
 func BenchmarkStoreBigHistory(b *testing.B) {
 	c := foosbot.NewContext()
-	m := randomMatches(100000)
+	m := randomOutcomes(100000)
 	addMatches(c, m)
 	for i := 0; i < b.N; i++ {
 		benchmarkStoreState(b, c)
@@ -71,17 +71,17 @@ func BenchmarkStoreBigHistory(b *testing.B) {
 
 func BenchmarkLoadBigHistory(b *testing.B) {
 	c := foosbot.NewContext()
-	m := randomMatches(100000)
+	m := randomOutcomes(100000)
 	addMatches(c, m)
 	c.Store()
 	benchmarkLoadState(b, c)
 }
 
-func benchmarkBuildHistory(b *testing.B, c *foosbot.Context, m []*foosbot.Match) {
+func benchmarkBuildHistory(b *testing.B, c *foosbot.Context, outcomes []*foosbot.Outcome) {
 	b.ResetTimer()
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		addMatches(c, m)
+		addMatches(c, outcomes)
 	}
 }
 

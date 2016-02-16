@@ -6,17 +6,24 @@ import (
 	"testing"
 )
 
-func TestRegisterTeam(t *testing.T) {
-	c := foosbot.NewContext()
+func TestNewTeam(t *testing.T) {
+	p1, p2 := foosbot.NewPlayer("p1"), foosbot.NewPlayer("p2")
+	team, err := foosbot.NewTeam(p1, p2)
+	assert.Nil(t, err)
+	assert.Equal(t, foosbot.BuildTeamID(p2, p1), team.ID)
+	assert.Equal(t, foosbot.BuildTeamID(p1, p2)[:8], team.ShortID())
+	assert.Equal(t, []*foosbot.Player{p1, p2}, team.Players)
+}
 
-	p1 := foosbot.NewPlayer("p1")
-	p2 := foosbot.NewPlayer("p2")
-	team, _ := foosbot.NewTeam(p1, p2)
-	c.AddTeam(team)
+func TestNewTeamWithoutPlayers(t *testing.T) {
+	team, err := foosbot.NewTeam()
+	assert.Nil(t, team)
+	assert.Equal(t, foosbot.ErrTeamNoPlayers, err)
+}
 
-	team, ok := c.Query.TeamByPlayers(p1, p2)
-	assert.True(t, ok)
-	team, ok = c.Query.TeamByID(team.ID)
-	assert.True(t, ok)
-	assert.Equal(t, 2, len(team.Players))
+func TestNewTeamWithDuplicatedPlayers(t *testing.T) {
+	p1, p2 := foosbot.NewPlayer("a"), foosbot.NewPlayer("a")
+	team, err := foosbot.NewTeam(p1, p2)
+	assert.Nil(t, team)
+	assert.Equal(t, err, foosbot.ErrTeamDuplicatePlayer)
 }

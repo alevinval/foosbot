@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"github.com/alevinval/foosbot"
 	"github.com/alevinval/foosbot/parsing"
@@ -15,43 +16,45 @@ import (
 	"time"
 )
 
-func addMatchCommand(ctx *foosbot.Context, matches []*foosbot.Match) string {
-	for i := range matches {
-		ctx.AddMatchWithHistory(matches[i])
+func addMatchCommand(ctx *foosbot.Context, outcomes []*foosbot.Outcome, teams []*foosbot.Team) string {
+	for i := range teams {
+		ctx.AddTeam(teams[i])
+	}
+	for i := range outcomes {
+		ctx.AddMatchWithOutcome(outcomes[i])
 	}
 	ids := []string{}
-	for i := range matches {
-		ids = append(ids, matches[i].ShortID())
+	for i := range outcomes {
+		ids = append(ids, outcomes[i].ShortID())
 	}
 	idsStr := strings.Join(ids, ",")
-	return fmt.Sprintf("%d matches %q registered to history.", len(matches), idsStr)
+	return fmt.Sprintf("%d matches %q registered to history.", len(outcomes), idsStr)
 
 }
 
 func getStatsCommand(ctx *foosbot.Context, team *foosbot.Team) string {
 	stats := ctx.TeamStats(team)
 	if stats.PlayedGames == 0 {
-		return fmt.Sprintf("%s hasn't played any match yet.", team)
+		return fmt.Sprintf("%s hasn't played any match yet.", ctx.Print(team))
 	}
-	response := fmt.Sprintf(
-		"%s has played %d matches, with a stunning record of %d wins and "+
-			"%d defeats.\n", team, stats.PlayedGames, stats.Wins, stats.Defeats)
-	response += fmt.Sprintf("Recent match history:\n")
-	for i := range stats.Matches {
-		idx := len(stats.Matches) - 1 - i
+	response := fmt.Sprintf("*Team %s*\n", ctx.Print(team))
+	response += fmt.Sprintf("Played %d matches (%d wins - %d defeats)\n", stats.PlayedGames, stats.Wins, stats.Defeats)
+	response += fmt.Sprint("```Recent match history:\n")
+	for i := range stats.Outcomes {
+		idx := len(stats.Outcomes) - 1 - i
+		outcome := stats.Outcomes[idx]
 		match := stats.Matches[idx]
-		history := stats.History[idx]
-		if match.WinnerID == team.ID {
-			response += fmt.Sprintf("- Won against %s (%s)\n",
-				match.Loosers()[0], humanize.Time(history.PlayedAt))
-		} else {
-			response += fmt.Sprintf("- Lost against %s (%s)\n",
-				match.Winner(), humanize.Time(history.PlayedAt))
+		outcomeStr := "Won"
+		if outcome.IsLooser(team) {
+			outcomeStr = "Lost"
 		}
-		if i >= 4 {
+		response += fmt.Sprintf("%s: %s %s (%s)\n", match.ShortID(), outcomeStr, ctx.Print(outcome),
+			humanize.Time(match.PlayedAt))
+		if i >= 10 {
 			break
 		}
 	}
+	response += "```"
 	return response
 }
 
@@ -67,14 +70,15 @@ func process(ctx *foosbot.Context, msg *slack.MessageEvent) (response string) {
 		response = fmt.Sprintf("%s", err)
 		return
 	}
+	fmt.Println(time.Now().String(), msg.Text)
 	switch token.Type {
 	case parsing.TokenCommandMatch:
-		matches, err := p.ParseMatch()
+		outcomes, teams, err := p.ParseMatch()
 		if err != nil {
 			response = err.Error()
 			return
 		}
-		response = addMatchCommand(ctx, matches)
+		response = addMatchCommand(ctx, outcomes, teams)
 	case parsing.TokenCommandStats:
 		team, err := p.ParseStats()
 		if err != nil {
@@ -106,6 +110,8 @@ func exit() <-chan os.Signal {
 }
 
 func main() {
+	flag.Parse()
+
 	ctx := foosbot.NewContext()
 	err := ctx.Load()
 	if err != nil {
@@ -138,7 +144,6 @@ Loop:
 			case *slack.LatencyReport:
 			case *slack.RTMError:
 			case *slack.MessageEvent:
-				fmt.Printf("%s: %v\n", ev.User, ev.Text)
 				response := process(ctx, ev)
 				rtm.SendMessage(rtm.NewOutgoingMessage(response, ev.Channel))
 			case *slack.InvalidAuthEvent:

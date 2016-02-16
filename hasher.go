@@ -5,12 +5,8 @@ import (
 	"encoding/hex"
 )
 
-var (
-	digest = sha256.New()
-)
-
 func hash(input ...string) string {
-	digest.Reset()
+	digest := sha256.New()
 	for _, in := range input {
 		digest.Write([]byte(in))
 	}

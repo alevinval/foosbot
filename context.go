@@ -1,6 +1,7 @@
 package foosbot
 
 import (
+	"flag"
 	"github.com/cheggaaa/pb"
 	"log"
 	"os"
@@ -10,30 +11,33 @@ const (
 	DefaultRepositoryName = "foosbot.db"
 )
 
+var (
+	compress   = flag.Bool("compress", false, "compresses the database")
+	decompress = flag.Bool("decompress", false, "decompresses the database")
+)
+
 type Context struct {
 	RepositoryName string
 	Query          Queries
-
-	// Actual context
-	History        []*HistoryEntry
 	Matches        []*Match
-	MatchesMap     map[string]*Match
+	Outcomes       []*Outcome
 	Teams          []*Team
-	TeamsMap       map[string]*Team
 	Players        []*Player
-	PlayersMap     map[string]*Player
-	PlayersNameMap map[string]*Player
+	outcomesMap    map[string]*Outcome
+	teamsMap       map[string]*Team
+	playersMap     map[string]*Player
+	playersNameMap map[string]*Player
 }
 
-func (c *Context) Reset() {
-	c.History = []*HistoryEntry{}
-	c.Matches = []*Match{}
-	c.MatchesMap = map[string]*Match{}
-	c.Teams = []*Team{}
-	c.TeamsMap = map[string]*Team{}
-	c.Players = []*Player{}
-	c.PlayersMap = map[string]*Player{}
-	c.PlayersNameMap = map[string]*Player{}
+func (ctx *Context) Reset() {
+	ctx.Matches = []*Match{}
+	ctx.Outcomes = []*Outcome{}
+	ctx.Teams = []*Team{}
+	ctx.Players = []*Player{}
+	ctx.outcomesMap = map[string]*Outcome{}
+	ctx.teamsMap = map[string]*Team{}
+	ctx.playersMap = map[string]*Player{}
+	ctx.playersNameMap = map[string]*Player{}
 }
 
 func NewContext() *Context {
@@ -41,63 +45,60 @@ func NewContext() *Context {
 }
 
 func newContext() *Context {
-	c := new(Context)
-	c.Query = Queries{c}
-	c.RepositoryName = DefaultRepositoryName
-	c.Reset()
-	return c
+	ctx := new(Context)
+	ctx.Query = Queries{ctx}
+	ctx.RepositoryName = DefaultRepositoryName
+	ctx.Reset()
+	return ctx
 }
 
-func (c *Context) AddMatchWithHistory(match *Match) {
-	entry := NewHistoryEntry(match)
-	c.AddMatch(match, entry)
+func (ctx *Context) AddMatchWithOutcome(outcome *Outcome) {
+	match := NewMatch(outcome)
+	ctx.AddMatch(match, outcome)
 }
 
-func (c *Context) AddMatch(match *Match, entry *HistoryEntry) {
-	c.History = append(c.History, entry)
-	m, ok := c.MatchesMap[match.ID]
+func (ctx *Context) AddMatch(match *Match, outcome *Outcome) {
+	ctx.Matches = append(ctx.Matches, match)
+	m, ok := ctx.outcomesMap[outcome.ID]
 	if ok {
-		match = m
-		m.N++
+		outcome = m
+		m.Occurrences++
 		return
 	}
-	match.N++
-	c.Matches = append(c.Matches, match)
-	c.MatchesMap[match.ID] = match
-	for _, team := range match.Teams {
-		c.AddTeam(team)
-	}
+	outcome.Occurrences++
+	ctx.Outcomes = append(ctx.Outcomes, outcome)
+	ctx.outcomesMap[outcome.ID] = outcome
 	return
 }
 
-func (c *Context) AddTeam(team *Team) {
-	_, ok := c.TeamsMap[team.ID]
+func (ctx *Context) AddTeam(team *Team) {
+	_, ok := ctx.teamsMap[team.ID]
 	if ok {
 		return
 	}
-	c.Teams = append(c.Teams, team)
-	c.TeamsMap[team.ID] = team
+	ctx.Teams = append(ctx.Teams, team)
+	ctx.teamsMap[team.ID] = team
 
 	for _, player := range team.Players {
-		c.AddPlayer(player)
+		ctx.AddPlayer(player)
 	}
 	return
 }
 
-func (c *Context) AddPlayer(player *Player) {
-	_, ok := c.PlayersMap[player.ID]
+func (ctx *Context) AddPlayer(player *Player) {
+	_, ok := ctx.playersMap[player.ID]
 	if ok {
 		return
 	}
-	c.Players = append(c.Players, player)
-	c.PlayersMap[player.ID] = player
-	c.PlayersNameMap[player.Name] = player
+	ctx.Players = append(ctx.Players, player)
+	ctx.playersMap[player.ID] = player
+	ctx.playersNameMap[player.Name] = player
 	return
 }
 
-func (c *Context) Store() error {
+func (ctx *Context) Store() error {
 	log.Println("storing repository")
-	err := storeRepository(c)
+	err := storeRepository(ctx, *compress)
 	if err != nil {
 		log.Printf("error storing repository: %s", err)
 		return err
@@ -105,9 +106,9 @@ func (c *Context) Store() error {
 	return nil
 }
 
-func (c *Context) Load() error {
+func (ctx *Context) Load() error {
 	log.Println("loading repository")
-	repo, err := loadRepository(c.RepositoryName)
+	repo, err := loadRepository(ctx.RepositoryName, *decompress)
 	if os.IsNotExist(err) {
 		log.Printf("repository not found")
 		return nil
@@ -115,22 +116,31 @@ func (c *Context) Load() error {
 		log.Printf("error loading repository: %s", err)
 		return err
 	}
-	log.Println("building match history")
-	loadedMatches := map[string]*Match{}
-	bar := pb.StartNew(len(repo.Matches))
-	for _, match := range repo.Matches {
-		loadedMatches[match.ID] = match
+
+	log.Println("loading teams")
+	bar := pb.StartNew(len(repo.Teams))
+	for _, team := range repo.Teams {
+		ctx.AddTeam(team)
 		bar.Increment()
 	}
 	bar.Finish()
 
-	bar = pb.StartNew(len(repo.History))
-	for _, historyEntry := range repo.History {
-		match, ok := loadedMatches[historyEntry.MatchID]
+	log.Println("loading match history")
+	loadedOutcomes := map[string]*Outcome{}
+	bar = pb.StartNew(len(repo.Outcomes))
+	for _, outcome := range repo.Outcomes {
+		loadedOutcomes[outcome.ID] = outcome
+		bar.Increment()
+	}
+	bar.Finish()
+
+	bar = pb.StartNew(len(repo.Matches))
+	for _, match := range repo.Matches {
+		outcome, ok := loadedOutcomes[match.OutcomeID]
 		if !ok {
-			log.Panicf("corrupted history %q", historyEntry.MatchID)
+			log.Panicf("corrupted history %q", match.OutcomeID)
 		}
-		c.AddMatch(match, historyEntry)
+		ctx.AddMatch(match, outcome)
 		bar.Increment()
 	}
 	bar.Finish()

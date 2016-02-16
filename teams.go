@@ -2,9 +2,12 @@ package foosbot
 
 import (
 	"errors"
-	"fmt"
 	"sort"
-	"strings"
+)
+
+var (
+	ErrTeamNoPlayers       = errors.New("a team must have at least 1 player")
+	ErrTeamDuplicatePlayer = errors.New("a team cannot contain duplicated players")
 )
 
 type Team struct {
@@ -12,32 +15,55 @@ type Team struct {
 	Players []*Player `json:"players"`
 }
 
-func buildTeamId(players ...*Player) string {
-	ids := []string{}
-	for _, user := range players {
-		ids = append(ids, user.ID)
-	}
-	sort.Strings(ids)
-	return hash(ids...)
-}
-
-func NewTeam(players ...*Player) (*Team, error) {
+func NewTeam(players ...*Player) (team *Team, err error) {
 	if len(players) == 0 {
-		return nil, errors.New("provide at least 1 player")
+		err = ErrTeamNoPlayers
+		return
 	}
-	teamID := buildTeamId(players...)
-	team := new(Team)
-	team.ID = teamID
-	team.Players = players
-	return team, nil
+	playerNames := make([]string, len(players))
+	for i := range players {
+		playerNames[i] = players[i].Name
+	}
+	if repeated(playerNames, []string{}) {
+		err = ErrTeamDuplicatePlayer
+		return
+	}
+	team = &Team{
+		ID:      BuildTeamID(players...),
+		Players: players,
+	}
+	return
 }
 
-func (t *Team) ShortID() string {
-	return strings.ToUpper(t.ID[:8])
+func (team *Team) ShortID() string {
+	return team.ID[:8]
 }
 
-func (t *Team) String() string {
-	p1 := t.Players[0].Name
-	p2 := t.Players[1].Name
-	return fmt.Sprintf("Team %s (%s %s)", t.ShortID(), p1, p2)
+func BuildTeamID(players ...*Player) string {
+	playerIds := []string{}
+	for _, player := range players {
+		playerIds = append(playerIds, player.ID)
+	}
+	sort.Strings(playerIds)
+	return hash(playerIds...)
+}
+
+func repeated(a, b []string) bool {
+	hA, hB := map[string]int{}, map[string]int{}
+	for i := range a {
+		hA[a[i]] += 1
+	}
+	for i := range b {
+		hA[b[i]] += 1
+	}
+	for k := range hA {
+		if hA[k] > 1 {
+			return true
+		}
+		_, ok := hB[k]
+		if ok {
+			return true
+		}
+	}
+	return false
 }

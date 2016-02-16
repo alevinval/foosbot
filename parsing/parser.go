@@ -36,7 +36,7 @@ func (p *Parser) ParseCommand() (Token, error) {
 	return token, nil
 }
 
-func (p *Parser) ParseMatch() (matches []*foosbot.Match, err error) {
+func (p *Parser) ParseMatch() (outcomes []*foosbot.Outcome, teams []*foosbot.Team, err error) {
 	var t1Score, t2Score int64
 	p1name, err := p.parsePlayerName()
 	if err != nil {
@@ -73,40 +73,39 @@ func (p *Parser) ParseMatch() (matches []*foosbot.Match, err error) {
 	t1Players := []string{p1name, p2name}
 	t2Players := []string{p3name, p4name}
 
-	if t1Players[0] == t1Players[1] {
-		err = newCommandError(fmt.Sprintf("player %q found twice in team 1", t1Players[0]))
-		return
-	}
-	if t2Players[0] == t2Players[1] {
-		err = newCommandError(fmt.Sprintf("player %q found twice in team 2", t2Players[0]))
-		return
-	}
-	if in(t1Players[0], t2Players) {
-		err = newCommandError(fmt.Sprintf("player %q cannot be in both teams", t1Players[0]))
-		return
-	}
-	if in(t1Players[1], t2Players) {
-		err = newCommandError(fmt.Sprintf("player %q cannot be in both teams", t1Players[1]))
-		return
-	}
-
-	// Parsing correct, re-create match history
+	// Parsing correct, create outcomes
 	p1, p2 := foosbot.NewPlayer(t1Players[0]), foosbot.NewPlayer(t1Players[1])
-	t1, _ := foosbot.NewTeam(p1, p2)
 	p3, p4 := foosbot.NewPlayer(t2Players[0]), foosbot.NewPlayer(t2Players[1])
-	t2, _ := foosbot.NewTeam(p3, p4)
+	t1, perr := foosbot.NewTeam(p1, p2)
+	if perr != nil {
+		err = newCommandError(perr.Error())
+		return
+	}
+	t2, perr := foosbot.NewTeam(p3, p4)
+	if perr != nil {
+		err = newCommandError(perr.Error())
+		return
+	}
 
 	for t1Score > 0 {
-		match := foosbot.NewMatch(t1, t2)
-		matches = append(matches, match)
+		outcome, oerr := foosbot.NewOutcome(t1, t2)
+		if oerr != nil {
+			err = newCommandError(oerr.Error())
+			return
+		}
+		outcomes = append(outcomes, outcome)
 		t1Score--
 	}
 	for t2Score > 0 {
-		match := foosbot.NewMatch(t2, t1)
-		matches = append(matches, match)
+		outcome, oerr := foosbot.NewOutcome(t2, t1)
+		if err != nil {
+			err = newCommandError(oerr.Error())
+			return
+		}
+		outcomes = append(outcomes, outcome)
 		t2Score--
 	}
-	return matches, nil
+	return outcomes, []*foosbot.Team{t1, t2}, nil
 }
 
 func (p *Parser) ParseStats() (*foosbot.Team, error) {
@@ -178,15 +177,6 @@ func (p *Parser) unscan() {
 	p.useLastToken = true
 }
 
-func in(match string, arr []string) bool {
-	for _, el := range arr {
-		if el == match {
-			return true
-		}
-	}
-	return false
-}
-
 func newParseError(found Token, expected string) error {
 	var msg string
 	if found.Literal == "" {
@@ -198,6 +188,6 @@ func newParseError(found Token, expected string) error {
 }
 
 func newCommandError(message string) error {
-	msg := fmt.Sprintf("Invalid command: %s", message)
+	msg := fmt.Sprintf("Invalid command: %s.", message)
 	return errors.New(msg)
 }

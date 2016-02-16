@@ -4,61 +4,53 @@ type Queries struct {
 	ctx *Context
 }
 
-func (q *Queries) MatchByID(id string) (*Match, bool) {
-	m, ok := q.ctx.MatchesMap[id]
+func (q *Queries) OutcomeByID(id string) (*Outcome, bool) {
+	m, ok := q.ctx.outcomesMap[id]
 	return m, ok
 }
 
-func (q *Queries) MatchByTeams(a, b *Team) (match *Match, ok bool) {
-	id := buildMatchId(a, b)
-	return q.MatchByID(id)
-}
-
-func (q *Queries) MatchesWithTeam(t *Team) (matches []*Match, history []*HistoryEntry) {
-	outcomes := []string{}
-	for _, match := range q.ctx.Matches {
-		for _, team := range match.Teams {
-			if t.ID == team.ID {
-				outcomes = append(outcomes, match.ID)
-				break
-			}
-		}
-	}
-	for _, entry := range q.ctx.History {
-		if in(outcomes, entry.MatchID) {
-			m, _ := q.MatchByID(entry.MatchID)
-			matches = append(matches, m)
-			history = append(history, entry)
-		}
-	}
-	return matches, history
+func (q *Queries) OutcomeByTeams(a, b *Team) (outcome *Outcome, ok bool) {
+	id := BuildOutcomeID(a, b)
+	return q.OutcomeByID(id)
 }
 
 func (q *Queries) TeamByID(id string) (team *Team, ok bool) {
-	team, ok = q.ctx.TeamsMap[id]
+	team, ok = q.ctx.teamsMap[id]
 	return
 }
 
 func (q *Queries) TeamByPlayers(players ...*Player) (team *Team, ok bool) {
-	id := buildTeamId(players...)
-	return q.TeamByID(id)
+	id := BuildTeamID(players...)
+	team, ok = q.TeamByID(id)
+	return
 }
 
 func (q *Queries) PlayerByID(playerID string) (player *Player, ok bool) {
-	player, ok = q.ctx.PlayersMap[playerID]
+	player, ok = q.ctx.playersMap[playerID]
 	return
 }
 
 func (q *Queries) PlayerByName(name string) (player *Player, ok bool) {
-	player, ok = q.ctx.PlayersNameMap[name]
+	player, ok = q.ctx.playersNameMap[name]
 	return
 }
 
-func in(arr []string, m string) bool {
-	for i := range arr {
-		if arr[i] == m {
-			return true
+func (q *Queries) MatchesWithTeam(t *Team) (matches []*Match, outcomes []*Outcome) {
+	outcomeIds := []string{}
+	outcomesMap := map[string]*Outcome{}
+	for _, outcome := range q.ctx.Outcomes {
+		if outcome.IsLooser(t) || outcome.IsWinner(t) {
+			outcomeIds = append(outcomeIds, outcome.ID)
+			outcomesMap[outcome.ID] = outcome
 		}
 	}
-	return false
+	for _, entry := range q.ctx.Matches {
+		outcome, ok := outcomesMap[entry.OutcomeID]
+		if !ok {
+			continue
+		}
+		outcomes = append(outcomes, outcome)
+		matches = append(matches, entry)
+	}
+	return matches, outcomes
 }

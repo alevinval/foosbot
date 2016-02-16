@@ -26,48 +26,48 @@ func TestParseCommands(t *testing.T) {
 
 func TestParseMatchCommand(t *testing.T) {
 	p := newParser("p1 p2 2 vs 1 p3 p4")
-	matches, err := p.ParseMatch()
+	outcomes, _, err := p.ParseMatch()
 	assert.Nil(t, err)
-	assert.Equal(t, 3, len(matches))
+	assert.Equal(t, 3, len(outcomes))
 
 	p = newParser("1 p2 2 vs 1 p3 p4")
-	matches, err = p.ParseMatch()
+	outcomes, _, err = p.ParseMatch()
 	assert.NotNil(t, err)
 
 	p = newParser("p1 2 2 vs 1 p3 p4")
-	matches, err = p.ParseMatch()
+	outcomes, _, err = p.ParseMatch()
 	assert.NotNil(t, err)
 
 	p = newParser("p1 p2 2* vs 1 p3 p4")
-	matches, err = p.ParseMatch()
+	outcomes, _, err = p.ParseMatch()
 	assert.NotNil(t, err)
 
 	p = newParser("p1 p2 2 _ 1 p3 p4")
-	matches, err = p.ParseMatch()
+	outcomes, _, err = p.ParseMatch()
 	assert.NotNil(t, err)
 
 	p = newParser("p1 p2 2 vs x1 p3 p4")
-	matches, err = p.ParseMatch()
+	outcomes, _, err = p.ParseMatch()
 	assert.NotNil(t, err)
 
 	p = newParser("p1 p2 2 vs 1 p4")
-	matches, err = p.ParseMatch()
+	outcomes, _, err = p.ParseMatch()
 	assert.NotNil(t, err)
 
 	p = newParser("p1 p2 2 vs 1 p3 2")
-	matches, err = p.ParseMatch()
+	outcomes, _, err = p.ParseMatch()
 	assert.NotNil(t, err)
 
 	p = newParser("p1 p2 2 vs 1 p1 p2")
-	matches, err = p.ParseMatch()
+	outcomes, _, err = p.ParseMatch()
 	assert.NotNil(t, err)
 
 	p = newParser("p1 p1 2 vs 1 p3 p4")
-	matches, err = p.ParseMatch()
+	outcomes, _, err = p.ParseMatch()
 	assert.NotNil(t, err)
 
 	p = newParser("p1 p2 2 vs 1 p3 p3")
-	matches, err = p.ParseMatch()
+	outcomes, _, err = p.ParseMatch()
 	assert.NotNil(t, err)
 }
 

@@ -6,26 +6,40 @@ import (
 	"testing"
 )
 
-func newTeam(names ...string) *foosbot.Team {
+func newTeam(names ...string) (team *foosbot.Team) {
 	players := make([]*foosbot.Player, len(names))
 	for i := range players {
 		players[i] = foosbot.NewPlayer(names[i])
 	}
-	t, _ := foosbot.NewTeam(players...)
-	return t
-}
-func newMatch(winner *foosbot.Team, loosers *foosbot.Team) *foosbot.Match {
-	return foosbot.NewMatch(winner, loosers)
+	team, _ = foosbot.NewTeam(players...)
+	return
 }
 
 func TestRegisterMatch(t *testing.T) {
-	w, l := newTeam("a", "b"), newTeam("c", "d")
-	m := newMatch(w, l)
+	winner, looser := newTeam("a", "b"), newTeam("c", "d")
+	outcome, _ := foosbot.NewOutcome(winner, looser)
+	ctx := foosbot.NewContext()
+	ctx.AddMatchWithOutcome(outcome)
 
-	c := foosbot.NewContext()
-	c.AddMatchWithHistory(m)
-
-	match, ok := c.Query.MatchByTeams(w, l)
+	outcomeByID, ok := ctx.Query.OutcomeByID(outcome.ID)
 	assert.True(t, ok)
-	assert.Equal(t, match.WinnerID, w.ID)
+	assert.Equal(t, outcome, outcomeByID)
+
+	outcomeByTeams, ok := ctx.Query.OutcomeByTeams(winner, looser)
+	assert.True(t, ok)
+	assert.Equal(t, outcome, outcomeByTeams)
+}
+
+func TestRegisterTeam(t *testing.T) {
+	ctx := foosbot.NewContext()
+	team := newTeam("p1", "p2")
+	ctx.AddTeam(team)
+
+	teamByID, ok := ctx.Query.TeamByID(team.ID)
+	assert.True(t, ok)
+	teamByPlayers, ok := ctx.Query.TeamByPlayers(team.Players...)
+	assert.True(t, ok)
+
+	assert.Equal(t, team, teamByID)
+	assert.Equal(t, team, teamByPlayers)
 }
