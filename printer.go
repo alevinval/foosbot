@@ -26,7 +26,7 @@ func (ctx *Context) Print(i interface{}) (out string) {
 	case *Team:
 		out = fmt.Sprintf("%s (%s)", obj.ShortID(), namesFromTeam(obj))
 	case *Player:
-		out = fmt.Sprintf("%s", obj.Name)
+		out = fmt.Sprintf("%s (%s)", obj.ShortID(), obj.Name)
 	default:
 		b, _ := json.Marshal(obj)
 		out = string(b)

@@ -36,21 +36,66 @@ func (q *Queries) PlayerByName(name string) (player *Player, ok bool) {
 }
 
 func (q *Queries) MatchesWithTeam(t *Team) (matches []*Match, outcomes []*Outcome) {
-	outcomeIds := []string{}
 	outcomesMap := map[string]*Outcome{}
 	for _, outcome := range q.ctx.Outcomes {
-		if outcome.IsLooser(t) || outcome.IsWinner(t) {
-			outcomeIds = append(outcomeIds, outcome.ID)
+		if outcome.IsWinner(t) || outcome.IsLooser(t) {
 			outcomesMap[outcome.ID] = outcome
 		}
 	}
-	for _, entry := range q.ctx.Matches {
-		outcome, ok := outcomesMap[entry.OutcomeID]
+	for _, match := range q.ctx.Matches {
+		outcome, ok := outcomesMap[match.OutcomeID]
 		if !ok {
 			continue
 		}
 		outcomes = append(outcomes, outcome)
-		matches = append(matches, entry)
+		matches = append(matches, match)
 	}
 	return matches, outcomes
+}
+
+func (q *Queries) MatchesWithPlayer(p *Player) (matches []*Match, outcomes []*Outcome, teams []*Team) {
+	qTeams := q.TeamsWithPlayer(p)
+	qTeamsMap := map[string]*Team{}
+	for _, team := range qTeams {
+		qTeamsMap[team.ID] = team
+	}
+	outcomesMap := map[string]*Outcome{}
+	for _, outcome := range q.ctx.Outcomes {
+		_, okW := qTeamsMap[outcome.WinnerID]
+		_, okL := qTeamsMap[outcome.LooserID]
+		if !okW && !okL {
+			continue
+		} else {
+			outcomesMap[outcome.ID] = outcome
+		}
+	}
+	for _, match := range q.ctx.Matches {
+		outcome, ok := outcomesMap[match.OutcomeID]
+		if !ok {
+			continue
+		}
+		outcomes = append(outcomes, outcome)
+		matches = append(matches, match)
+		if w, ok := qTeamsMap[outcome.WinnerID]; ok {
+			teams = append(teams, w)
+		} else {
+			l := qTeamsMap[outcome.LooserID]
+			teams = append(teams, l)
+		}
+	}
+	return
+}
+
+func (q *Queries) TeamsWithPlayer(p *Player) (teams []*Team) {
+	return q.ctx.playersTeamMap[p.ID]
+}
+
+func (q *Queries) TeamWithPlayer(teams []*Team, player *Player) *Team {
+	for _, team := range teams {
+		_, ok := q.ctx.teamsPlayerMap[team.ID][player.ID]
+		if ok {
+			return team
+		}
+	}
+	return nil
 }

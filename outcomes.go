@@ -27,16 +27,16 @@ func NewOutcome(winner, looser *Team) (outcome *Outcome, err error) {
 	return
 }
 
-func (m *Outcome) ShortID() string {
-	return m.ID[:8]
+func (o *Outcome) ShortID() string {
+	return o.ID[:8]
 }
 
-func (m *Outcome) IsWinner(t *Team) bool {
-	return m.WinnerID == t.ID
+func (o *Outcome) IsWinner(t *Team) bool {
+	return o.WinnerID == t.ID
 }
 
-func (m *Outcome) IsLooser(t *Team) bool {
-	return m.LooserID == t.ID
+func (o *Outcome) IsLooser(t *Team) bool {
+	return o.LooserID == t.ID
 }
 
 func BuildOutcomeID(winner, looser *Team) string {

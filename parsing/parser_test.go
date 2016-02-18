@@ -2,6 +2,7 @@ package parsing_test
 
 import (
 	"bytes"
+	"github.com/alevinval/foosbot"
 	"github.com/alevinval/foosbot/parsing"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -73,23 +74,25 @@ func TestParseMatchCommand(t *testing.T) {
 
 func TestParseStatsCommand(t *testing.T) {
 	p := newParser("p1 p2")
-	team, err := p.ParseStats()
+	obj, err := p.ParseStats()
 	assert.Nil(t, err)
-	assert.Equal(t, 2, len(team.Players))
+	assert.IsType(t, obj, new(foosbot.Team))
+	assert.Equal(t, 2, len(obj.(*foosbot.Team).Players))
+
+	p = newParser("p1")
+	obj, err = p.ParseStats()
+	assert.Nil(t, err)
+	assert.IsType(t, obj, new(foosbot.Player))
 
 	p = newParser("1 p2")
-	team, err = p.ParseStats()
+	obj, err = p.ParseStats()
 	assert.NotNil(t, err)
 
 	p = newParser("1a p2")
-	team, err = p.ParseStats()
+	obj, err = p.ParseStats()
 	assert.NotNil(t, err)
 
 	p = newParser("a1 2")
-	team, err = p.ParseStats()
-	assert.NotNil(t, err)
-
-	p = newParser("a1")
-	team, err = p.ParseStats()
+	obj, err = p.ParseStats()
 	assert.NotNil(t, err)
 }

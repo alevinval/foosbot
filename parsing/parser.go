@@ -108,10 +108,17 @@ func (p *Parser) ParseMatch() (outcomes []*foosbot.Outcome, teams []*foosbot.Tea
 	return outcomes, []*foosbot.Team{t1, t2}, nil
 }
 
-func (p *Parser) ParseStats() (*foosbot.Team, error) {
+func (p *Parser) ParseStats() (interface{}, error) {
 	p1name, err := p.parsePlayerName()
 	if err != nil {
 		return nil, err
+	}
+	err = p.parseEof()
+	if err != nil {
+		p.unscan()
+	} else {
+		p1 := foosbot.NewPlayer(p1name)
+		return p1, nil
 	}
 	p2name, err := p.parsePlayerName()
 	if err != nil {

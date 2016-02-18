@@ -25,8 +25,10 @@ type Context struct {
 	Players        []*Player
 	outcomesMap    map[string]*Outcome
 	teamsMap       map[string]*Team
+	teamsPlayerMap map[string]map[string]*Player
 	playersMap     map[string]*Player
 	playersNameMap map[string]*Player
+	playersTeamMap map[string][]*Team
 }
 
 func (ctx *Context) Reset() {
@@ -36,8 +38,10 @@ func (ctx *Context) Reset() {
 	ctx.Players = []*Player{}
 	ctx.outcomesMap = map[string]*Outcome{}
 	ctx.teamsMap = map[string]*Team{}
+	ctx.teamsPlayerMap = map[string]map[string]*Player{}
 	ctx.playersMap = map[string]*Player{}
 	ctx.playersNameMap = map[string]*Player{}
+	ctx.playersTeamMap = map[string][]*Team{}
 }
 
 func NewContext() *Context {
@@ -78,9 +82,12 @@ func (ctx *Context) AddTeam(team *Team) {
 	}
 	ctx.Teams = append(ctx.Teams, team)
 	ctx.teamsMap[team.ID] = team
+	ctx.teamsPlayerMap[team.ID] = map[string]*Player{}
 
 	for _, player := range team.Players {
 		ctx.AddPlayer(player)
+		ctx.teamsPlayerMap[team.ID][player.ID] = player
+		ctx.playersTeamMap[player.ID] = append(ctx.playersTeamMap[player.ID], team)
 	}
 	return
 }
