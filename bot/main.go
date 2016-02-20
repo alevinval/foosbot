@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/alevinval/foosbot"
 	"github.com/alevinval/foosbot/parsing"
-	"github.com/dustin/go-humanize"
 	"github.com/nlopes/slack"
 	"io/ioutil"
 	"log"
@@ -34,55 +33,18 @@ func addMatchCommand(ctx *foosbot.Context, outcomes []*foosbot.Outcome, teams []
 
 func getTeamStatsCommand(ctx *foosbot.Context, team *foosbot.Team) string {
 	stats := ctx.TeamStats(team)
-	if stats.PlayedGames == 0 {
-		return fmt.Sprintf("%s hasn't played any match yet.", ctx.Print(team))
-	}
-	response := fmt.Sprintf("*Team %s*\n", ctx.Print(team))
-	response += fmt.Sprintf("Played %d matches (%d wins - %d defeats)\n", stats.PlayedGames, stats.Wins, stats.Defeats)
+	response := ctx.ReportStats(stats.Stats, team)
 	response += fmt.Sprintf("```Recent match history for team %s:\n", team.ShortID())
-	for i := range stats.Matches {
-		idx := len(stats.Outcomes) - 1 - i
-		outcome := stats.Outcomes[idx]
-		match := stats.Matches[idx]
-		outcomeStr := "Won"
-		if outcome.IsLooser(team) {
-			outcomeStr = "Lost"
-		}
-		response += fmt.Sprintf("%s: %s %s (%s)\n", match.ShortID(), outcomeStr, ctx.Print(outcome),
-			humanize.Time(match.PlayedAt))
-		if i >= 10 {
-			break
-		}
-	}
+	response += ctx.ReportTeamHistory(stats.Stats, team)
 	response += "```"
 	return response
 }
 
 func getPlayerStatsCommand(ctx *foosbot.Context, player *foosbot.Player) string {
 	stats := ctx.PlayerStats(player)
-	if stats.PlayedGames == 0 {
-		return fmt.Sprintf("%s hasn't played any match yet.", ctx.Print(player))
-	}
-	response := fmt.Sprintf("*Player %s*\n", ctx.Print(player))
-	response += fmt.Sprintf("Played %d matches (%d wins - %d defeats)\n", stats.PlayedGames, stats.Wins, stats.Defeats)
+	response := ctx.ReportStats(stats.Stats, player)
 	response += fmt.Sprintf("```Recent match history for %s:\n", player.Name)
-	for i := range stats.Matches {
-		idx := len(stats.Outcomes) - 1 - i
-		outcome := stats.Outcomes[idx]
-		match := stats.Matches[idx]
-		wt, _ := ctx.Query.TeamByID(outcome.WinnerID)
-		lt, _ := ctx.Query.TeamByID(outcome.LooserID)
-		team := ctx.Query.TeamWithPlayer([]*foosbot.Team{wt, lt}, player)
-		outcomeStr := "Won"
-		if outcome.IsLooser(team) {
-			outcomeStr = "Lost"
-		}
-		response += fmt.Sprintf("%s: %s %s (%s)\n", match.ShortID(), outcomeStr, ctx.Print(outcome),
-			humanize.Time(match.PlayedAt))
-		if i >= 10 {
-			break
-		}
-	}
+	response += ctx.ReportPlayerHistory(stats.Stats, player)
 	response += "```"
 	return response
 }
