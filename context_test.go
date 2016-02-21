@@ -21,11 +21,11 @@ func TestRegisterMatch(t *testing.T) {
 	ctx := foosbot.NewContext()
 	ctx.AddMatchWithOutcome(outcome)
 
-	outcomeByID, ok := ctx.Query.OutcomeByID(outcome.ID)
+	outcomeByID, ok := foosbot.Query(ctx).OutcomeByID(outcome.ID)
 	assert.True(t, ok)
 	assert.Equal(t, outcome, outcomeByID)
 
-	outcomeByTeams, ok := ctx.Query.OutcomeByTeams(winner, looser)
+	outcomeByTeams, ok := foosbot.Query(ctx).OutcomeByTeams(winner, looser)
 	assert.True(t, ok)
 	assert.Equal(t, outcome, outcomeByTeams)
 }
@@ -35,9 +35,9 @@ func TestRegisterTeam(t *testing.T) {
 	team := newTeam("p1", "p2")
 	ctx.AddTeam(team)
 
-	teamByID, ok := ctx.Query.TeamByID(team.ID)
+	teamByID, ok := foosbot.Query(ctx).TeamByID(team.ID)
 	assert.True(t, ok)
-	teamByPlayers, ok := ctx.Query.TeamByPlayers(team.Players...)
+	teamByPlayers, ok := foosbot.Query(ctx).TeamByPlayers(team.Players...)
 	assert.True(t, ok)
 
 	assert.Equal(t, team, teamByID)

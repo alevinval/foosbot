@@ -7,11 +7,11 @@ import (
 	"strings"
 )
 
-func (ctx *Context) ReportStats(status *Stats, obj interface{}) string {
+func (ctx *Context) ReportStats(status *Stats, teamOrPlayer interface{}) string {
 	if status.PlayedGames == 0 {
-		return fmt.Sprintf("%s hasn't played any match yet.", ctx.Print(obj))
+		return fmt.Sprintf("%s hasn't played any match yet.", ctx.Print(teamOrPlayer))
 	}
-	response := fmt.Sprintf("*%s*\n", ctx.Print(obj))
+	response := fmt.Sprintf("*%s*\n", ctx.Print(teamOrPlayer))
 	response += fmt.Sprintf("Played %d matches (%d wins - %d defeats) - %.2f%% winrate\n", status.PlayedGames,
 		status.Wins, status.Defeats, status.WinRate)
 	response += fmt.Sprintf("```Recent match history\n")
@@ -42,12 +42,8 @@ func (ctx *Context) Print(i interface{}) (out string) {
 	switch obj := i.(type) {
 	case *Match:
 		out = fmt.Sprintf("%s (%s)", obj.ShortID(), humanize.Time(obj.PlayedAt))
-	case *Outcome:
-		w, _ := ctx.Query.TeamByID(obj.WinnerID)
-		l, _ := ctx.Query.TeamByID(obj.LooserID)
-		out = fmt.Sprintf("(%s) vs (%s)", namesFromTeam(w), namesFromTeam(l))
 	case *Team:
-		out = fmt.Sprintf("%s (%s)", obj.ShortID(), namesFromTeam(obj))
+		out = fmt.Sprintf("%s (%s)", obj.ShortID(), namesFromPlayers(obj.Players))
 	case *Player:
 		out = fmt.Sprintf("%s (%s)", obj.ShortID(), obj.Name)
 	case []*Player:
@@ -57,14 +53,6 @@ func (ctx *Context) Print(i interface{}) (out string) {
 		out = string(b)
 	}
 	return
-}
-
-func namesFromTeam(t *Team) string {
-	names := []string{}
-	for _, player := range t.Players {
-		names = append(names, player.Name)
-	}
-	return strings.Join(names, ",")
 }
 
 func namesFromPlayers(players []*Player) string {

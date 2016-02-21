@@ -7,7 +7,7 @@ var (
 )
 
 type Outcome struct {
-	ID          string `json:"match_id"`
+	ID          string `json:"outcome_id"`
 	WinnerID    string `json:"winner_id"`
 	LooserID    string `json:"looser_id"`
 	Occurrences int    `json:"-"`

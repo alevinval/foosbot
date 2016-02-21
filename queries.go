@@ -1,45 +1,64 @@
 package foosbot
 
-type Queries struct {
-	ctx *Context
+func Query(ctx *Context) *QueryBuilder {
+	return &QueryBuilder{ctx: ctx, indexes: ctx.indexes}
 }
 
-func (q *Queries) OutcomeByID(id string) (*Outcome, bool) {
-	m, ok := q.ctx.outcomesMap[id]
+type QueryBuilder struct {
+	ctx     *Context
+	indexes *Indexing
+}
+
+func (qb *QueryBuilder) OutcomeByID(id string) (*Outcome, bool) {
+	m, ok := qb.indexes.outcomesMap[id]
 	return m, ok
 }
 
-func (q *Queries) OutcomeByTeams(a, b *Team) (outcome *Outcome, ok bool) {
+func (qb *QueryBuilder) OutcomeByTeams(a, b *Team) (outcome *Outcome, ok bool) {
 	id := BuildOutcomeID(a, b)
-	return q.OutcomeByID(id)
+	return qb.OutcomeByID(id)
 }
 
-func (q *Queries) TeamByID(id string) (team *Team, ok bool) {
-	team, ok = q.ctx.teamsMap[id]
+func (qb *QueryBuilder) TeamByID(id string) (team *Team, ok bool) {
+	team, ok = qb.indexes.teamsMap[id]
 	return
 }
 
-func (q *Queries) TeamByPlayers(players ...*Player) (team *Team, ok bool) {
+func (qb *QueryBuilder) TeamByPlayers(players ...*Player) (team *Team, ok bool) {
 	id := BuildTeamID(players...)
-	team, ok = q.TeamByID(id)
+	team, ok = qb.TeamByID(id)
 	return
 }
 
-func (q *Queries) PlayerByID(playerID string) (player *Player, ok bool) {
-	player, ok = q.ctx.playersMap[playerID]
+func (qb *QueryBuilder) PlayerByID(playerID string) (player *Player, ok bool) {
+	player, ok = qb.indexes.playersMap[playerID]
 	return
 }
 
-func (q *Queries) PlayerByName(name string) (player *Player, ok bool) {
-	player, ok = q.ctx.playersNameMap[name]
+func (qb *QueryBuilder) PlayerByName(name string) (player *Player, ok bool) {
+	player, ok = qb.indexes.playersNameMap[name]
 	return
 }
 
-func (q *Queries) MatchesWithTeam(team *Team) []*MatchResult {
+func (qb *QueryBuilder) TeamsWithPlayer(p *Player) (teams []*Team) {
+	return qb.indexes.playersTeamMap[p.ID]
+}
+
+func (qb *QueryBuilder) TeamWithPlayer(teams []*Team, player *Player) *Team {
+	for _, team := range teams {
+		_, ok := qb.indexes.teamsPlayerMap[team.ID][player.ID]
+		if ok {
+			return team
+		}
+	}
+	return nil
+}
+
+func (qb *QueryBuilder) MatchesWithTeam(team *Team) []*MatchResult {
 	rs := []*MatchResult{}
-	for i := range q.ctx.Matches {
-		match := q.ctx.Matches[len(q.ctx.Matches)-i-1]
-		outcome, ok := q.OutcomeByID(match.OutcomeID)
+	for i := range qb.ctx.Matches {
+		match := qb.ctx.Matches[len(qb.ctx.Matches)-i-1]
+		outcome, ok := qb.OutcomeByID(match.OutcomeID)
 		if !ok {
 			continue
 		}
@@ -49,9 +68,9 @@ func (q *Queries) MatchesWithTeam(team *Team) []*MatchResult {
 		}
 		var opponent *Team
 		if isWinner {
-			opponent, ok = q.TeamByID(outcome.LooserID)
+			opponent, ok = qb.TeamByID(outcome.LooserID)
 		} else {
-			opponent, ok = q.TeamByID(outcome.WinnerID)
+			opponent, ok = qb.TeamByID(outcome.WinnerID)
 		}
 		if !ok {
 			continue
@@ -68,17 +87,17 @@ func (q *Queries) MatchesWithTeam(team *Team) []*MatchResult {
 	return rs
 }
 
-func (q *Queries) MatchesWithPlayer(p *Player) []*MatchResult {
-	qTeams := q.TeamsWithPlayer(p)
+func (qb *QueryBuilder) MatchesWithPlayer(p *Player) []*MatchResult {
+	qTeams := qb.TeamsWithPlayer(p)
 	qTeamsMap := map[string]*Team{}
 	for _, team := range qTeams {
 		qTeamsMap[team.ID] = team
 	}
 
 	rs := []*MatchResult{}
-	for i := range q.ctx.Matches {
-		match := q.ctx.Matches[len(q.ctx.Matches)-i-1]
-		outcome, ok := q.OutcomeByID(match.OutcomeID)
+	for i := range qb.ctx.Matches {
+		match := qb.ctx.Matches[len(qb.ctx.Matches)-i-1]
+		outcome, ok := qb.OutcomeByID(match.OutcomeID)
 		if !ok {
 			continue
 		}
@@ -89,13 +108,13 @@ func (q *Queries) MatchesWithPlayer(p *Player) []*MatchResult {
 			continue
 		} else if isWinner {
 			team = winner
-			opponent, ok = q.TeamByID(outcome.LooserID)
+			opponent, ok = qb.TeamByID(outcome.LooserID)
 			if !ok {
 				continue
 			}
 		} else {
 			team = looser
-			opponent, ok = q.TeamByID(outcome.WinnerID)
+			opponent, ok = qb.TeamByID(outcome.WinnerID)
 			if !ok {
 				continue
 			}
@@ -110,18 +129,4 @@ func (q *Queries) MatchesWithPlayer(p *Player) []*MatchResult {
 		rs = append(rs, result)
 	}
 	return rs
-}
-
-func (q *Queries) TeamsWithPlayer(p *Player) (teams []*Team) {
-	return q.ctx.playersTeamMap[p.ID]
-}
-
-func (q *Queries) TeamWithPlayer(teams []*Team, player *Player) *Team {
-	for _, team := range teams {
-		_, ok := q.ctx.teamsPlayerMap[team.ID][player.ID]
-		if ok {
-			return team
-		}
-	}
-	return nil
 }

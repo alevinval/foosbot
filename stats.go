@@ -21,7 +21,7 @@ type playerStats struct {
 func (ctx *Context) TeamStats(team *Team) *teamStats {
 	stats := new(teamStats)
 	stats.Team = team
-	stats.Results = ctx.Query.MatchesWithTeam(team)
+	stats.Results = Query(ctx).MatchesWithTeam(team)
 	for _, result := range stats.Results {
 		computeStats(&stats.Stats, result)
 	}
@@ -32,7 +32,7 @@ func (ctx *Context) TeamStats(team *Team) *teamStats {
 func (ctx *Context) PlayerStats(player *Player) *playerStats {
 	stats := new(playerStats)
 	stats.Player = player
-	stats.Results = ctx.Query.MatchesWithPlayer(player)
+	stats.Results = Query(ctx).MatchesWithPlayer(player)
 	for _, result := range stats.Results {
 		computeStats(&stats.Stats, result)
 	}

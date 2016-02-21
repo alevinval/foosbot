@@ -5,25 +5,25 @@ import (
 )
 
 type Match struct {
-	ID        string    `json:"history_id"`
-	OutcomeID string    `json:"match_id"`
+	ID        string    `json:"match_id"`
+	OutcomeID string    `json:"outcome_id"`
 	PlayedAt  time.Time `json:"played_at"`
 }
 
-func NewMatch(outcome *Outcome) (entry *Match) {
+func NewMatch(outcome *Outcome) (match *Match) {
 	now := time.Now()
-	entry = &Match{
-		ID:        BuildHistoryID(outcome, now),
+	match = &Match{
+		ID:        BuildMatchID(outcome, now),
 		OutcomeID: outcome.ID,
 		PlayedAt:  now,
 	}
 	return
 }
 
-func (h *Match) ShortID() string {
-	return h.ID[:8]
+func (m *Match) ShortID() string {
+	return m.ID[:8]
 }
 
-func BuildHistoryID(outcome *Outcome, playedAt time.Time) string {
+func BuildMatchID(outcome *Outcome, playedAt time.Time) string {
 	return hash(outcome.ID, playedAt.String())
 }

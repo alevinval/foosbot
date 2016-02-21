@@ -7,19 +7,25 @@ import (
 )
 
 const (
-	dbVersion = "0.0.1"
+	DatabaseVersion     = "0.0.1"
+	DefaultDatabaseName = "foosbot.db"
 )
 
-type repository struct {
+type Database struct {
 	Version  string     `json:"version"`
 	Matches  []*Match   `json:"history"`
 	Outcomes []*Outcome `json:"matches"`
 	Teams    []*Team    `json:"teams"`
 }
 
-func storeRepository(c *Context, compress bool) error {
-	repo := &repository{Version: dbVersion, Matches: c.Matches, Outcomes: c.Outcomes, Teams: c.Teams}
-	f, err := os.OpenFile(c.RepositoryName, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.ModePerm)
+func StoreDB(ctx *Context, compress bool) error {
+	db := &Database{
+		Version:  DatabaseVersion,
+		Matches:  ctx.Matches,
+		Outcomes: ctx.Outcomes,
+		Teams:    ctx.Teams,
+	}
+	f, err := os.OpenFile(ctx.DatabaseName, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.ModePerm)
 	if err != nil {
 		return err
 	}
@@ -31,20 +37,20 @@ func storeRepository(c *Context, compress bool) error {
 			return err
 		}
 		defer gzw.Close()
-		return json.NewEncoder(gzw).Encode(repo)
+		return json.NewEncoder(gzw).Encode(db)
 	} else {
-		return json.NewEncoder(f).Encode(repo)
+		return json.NewEncoder(f).Encode(db)
 	}
 }
 
-func loadRepository(path string, decompress bool) (repo *repository, err error) {
+func LoadDB(path string, decompress bool) (db *Database, err error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return
 	}
 	defer f.Close()
 
-	repo = new(repository)
+	db = new(Database)
 	if decompress {
 		gzr, zerr := gzip.NewReader(f)
 		if zerr != nil {
@@ -52,9 +58,9 @@ func loadRepository(path string, decompress bool) (repo *repository, err error) 
 			return
 		}
 		defer gzr.Close()
-		err = json.NewDecoder(gzr).Decode(repo)
+		err = json.NewDecoder(gzr).Decode(db)
 	} else {
-		err = json.NewDecoder(f).Decode(repo)
+		err = json.NewDecoder(f).Decode(db)
 	}
 	return
 }
