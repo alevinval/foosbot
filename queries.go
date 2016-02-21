@@ -35,55 +35,81 @@ func (q *Queries) PlayerByName(name string) (player *Player, ok bool) {
 	return
 }
 
-func (q *Queries) MatchesWithTeam(t *Team) (matches []*Match, outcomes []*Outcome) {
-	outcomesMap := map[string]*Outcome{}
-	for _, outcome := range q.ctx.Outcomes {
-		if outcome.IsWinner(t) || outcome.IsLooser(t) {
-			outcomesMap[outcome.ID] = outcome
-		}
-	}
-	for _, match := range q.ctx.Matches {
-		outcome, ok := outcomesMap[match.OutcomeID]
+func (q *Queries) MatchesWithTeam(team *Team) []*MatchResult {
+	rs := []*MatchResult{}
+	for i := range q.ctx.Matches {
+		match := q.ctx.Matches[len(q.ctx.Matches)-i-1]
+		outcome, ok := q.OutcomeByID(match.OutcomeID)
 		if !ok {
 			continue
 		}
-		outcomes = append(outcomes, outcome)
-		matches = append(matches, match)
+		isWinner, isLooser := outcome.IsWinner(team), outcome.IsLooser(team)
+		if !isWinner && !isLooser {
+			continue
+		}
+		var opponent *Team
+		if isWinner {
+			opponent, ok = q.TeamByID(outcome.LooserID)
+		} else {
+			opponent, ok = q.TeamByID(outcome.WinnerID)
+		}
+		if !ok {
+			continue
+		}
+		result := &MatchResult{
+			Match:    match,
+			Status:   MatchStatus(isWinner),
+			Outcome:  outcome,
+			Team:     team,
+			Opponent: opponent,
+		}
+		rs = append(rs, result)
 	}
-	return matches, outcomes
+	return rs
 }
 
-func (q *Queries) MatchesWithPlayer(p *Player) (matches []*Match, outcomes []*Outcome, teams []*Team) {
+func (q *Queries) MatchesWithPlayer(p *Player) []*MatchResult {
 	qTeams := q.TeamsWithPlayer(p)
 	qTeamsMap := map[string]*Team{}
 	for _, team := range qTeams {
 		qTeamsMap[team.ID] = team
 	}
-	outcomesMap := map[string]*Outcome{}
-	for _, outcome := range q.ctx.Outcomes {
-		_, okW := qTeamsMap[outcome.WinnerID]
-		_, okL := qTeamsMap[outcome.LooserID]
-		if !okW && !okL {
-			continue
-		} else {
-			outcomesMap[outcome.ID] = outcome
-		}
-	}
-	for _, match := range q.ctx.Matches {
-		outcome, ok := outcomesMap[match.OutcomeID]
+
+	rs := []*MatchResult{}
+	for i := range q.ctx.Matches {
+		match := q.ctx.Matches[len(q.ctx.Matches)-i-1]
+		outcome, ok := q.OutcomeByID(match.OutcomeID)
 		if !ok {
 			continue
 		}
-		outcomes = append(outcomes, outcome)
-		matches = append(matches, match)
-		if w, ok := qTeamsMap[outcome.WinnerID]; ok {
-			teams = append(teams, w)
+		var team, opponent *Team
+		winner, isWinner := qTeamsMap[outcome.WinnerID]
+		looser, isLooser := qTeamsMap[outcome.LooserID]
+		if !isWinner && !isLooser {
+			continue
+		} else if isWinner {
+			team = winner
+			opponent, ok = q.TeamByID(outcome.LooserID)
+			if !ok {
+				continue
+			}
 		} else {
-			l := qTeamsMap[outcome.LooserID]
-			teams = append(teams, l)
+			team = looser
+			opponent, ok = q.TeamByID(outcome.WinnerID)
+			if !ok {
+				continue
+			}
 		}
+		result := &MatchResult{
+			Match:    match,
+			Status:   MatchStatus(isWinner),
+			Outcome:  outcome,
+			Team:     team,
+			Opponent: opponent,
+		}
+		rs = append(rs, result)
 	}
-	return
+	return rs
 }
 
 func (q *Queries) TeamsWithPlayer(p *Player) (teams []*Team) {

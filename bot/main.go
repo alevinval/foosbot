@@ -33,19 +33,13 @@ func addMatchCommand(ctx *foosbot.Context, outcomes []*foosbot.Outcome, teams []
 
 func getTeamStatsCommand(ctx *foosbot.Context, team *foosbot.Team) string {
 	stats := ctx.TeamStats(team)
-	response := ctx.ReportStats(stats.Stats, team)
-	response += fmt.Sprintf("```Recent match history for team %s:\n", team.ShortID())
-	response += ctx.ReportTeamHistory(stats.Stats, team)
-	response += "```"
+	response := ctx.ReportStats(&stats.Stats, team)
 	return response
 }
 
 func getPlayerStatsCommand(ctx *foosbot.Context, player *foosbot.Player) string {
 	stats := ctx.PlayerStats(player)
-	response := ctx.ReportStats(stats.Stats, player)
-	response += fmt.Sprintf("```Recent match history for %s:\n", player.Name)
-	response += ctx.ReportPlayerHistory(stats.Stats, player)
-	response += "```"
+	response := ctx.ReportStats(&stats.Stats, player)
 	return response
 }
 

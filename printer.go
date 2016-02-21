@@ -7,82 +7,35 @@ import (
 	"strings"
 )
 
-func namesFromTeam(t *Team) string {
-	names := []string{}
-	for _, player := range t.Players {
-		names = append(names, player.Name)
-	}
-	return strings.Join(names, ",")
-}
-
-func namesFromPlayers(players []*Player) string {
-	names := []string{}
-	for _, player := range players {
-		names = append(names, player.Name)
-	}
-	return strings.Join(names, ",")
-}
-
-func (ctx *Context) ReportHistoryLine(match *Match, outcome *Outcome, team *Team, opponent *Team) string {
-	outcomeStr := "won"
-	if outcome.IsLooser(team) {
-		outcomeStr = "lost"
-	}
-	return fmt.Sprintf("%s: %-4s against (%s) (%s)\n", match.ShortID(), outcomeStr, ctx.Print(opponent.Players),
-		humanize.Time(match.PlayedAt))
-}
-
-func (ctx *Context) ReportStats(s Stats, obj interface{}) string {
-	if s.PlayedGames == 0 {
+func (ctx *Context) ReportStats(status *Stats, obj interface{}) string {
+	if status.PlayedGames == 0 {
 		return fmt.Sprintf("%s hasn't played any match yet.", ctx.Print(obj))
 	}
 	response := fmt.Sprintf("*%s*\n", ctx.Print(obj))
-	response += fmt.Sprintf("Played %d matches (%d wins - %d defeats) - %.2f%% winrate\n", s.PlayedGames,
-		s.Wins, s.Defeats, s.WinRate)
+	response += fmt.Sprintf("Played %d matches (%d wins - %d defeats) - %.2f%% winrate\n", status.PlayedGames,
+		status.Wins, status.Defeats, status.WinRate)
+	response += fmt.Sprintf("```Recent match history\n")
+	response += ctx.reportHistory(status)
+	response += "```"
 	return response
 }
 
-func (ctx *Context) ReportTeamHistory(s Stats, team *Team) string {
-	report := ""
-	for i := range s.Matches {
-		idx := len(s.Outcomes) - 1 - i
-		outcome := s.Outcomes[idx]
-		match := s.Matches[idx]
-		winner, _ := ctx.Query.TeamByID(outcome.WinnerID)
-		looser, _ := ctx.Query.TeamByID(outcome.LooserID)
+func (ctx *Context) reportHistory(stats *Stats) string {
+	response := ""
+	response += string(len(stats.Results))
 
-		opponent := looser
-		if outcome.IsLooser(team) {
-			opponent = winner
-		}
-		report += ctx.ReportHistoryLine(match, outcome, team, opponent)
+	for i, result := range stats.Results {
+		response += ctx.reportHistoryLine(result)
 		if i >= 10 {
 			break
 		}
 	}
-	return report
+	return response
 }
 
-func (ctx *Context) ReportPlayerHistory(s Stats, player *Player) string {
-	report := ""
-	for i := range s.Matches {
-		idx := len(s.Outcomes) - 1 - i
-		outcome := s.Outcomes[idx]
-		match := s.Matches[idx]
-
-		winner, _ := ctx.Query.TeamByID(outcome.WinnerID)
-		looser, _ := ctx.Query.TeamByID(outcome.LooserID)
-		team := ctx.Query.TeamWithPlayer([]*Team{winner, looser}, player)
-		opponent := winner
-		if outcome.IsWinner(team) {
-			opponent = looser
-		}
-		report += ctx.ReportHistoryLine(match, outcome, team, opponent)
-		if i >= 10 {
-			break
-		}
-	}
-	return report
+func (ctx *Context) reportHistoryLine(result *MatchResult) string {
+	return fmt.Sprintf("%s: %-4s against (%s) (%s)\n", result.Match.ShortID(), result.Status,
+		ctx.Print(result.Opponent.Players), humanize.Time(result.Match.PlayedAt))
 }
 
 func (ctx *Context) Print(i interface{}) (out string) {
@@ -104,4 +57,20 @@ func (ctx *Context) Print(i interface{}) (out string) {
 		out = string(b)
 	}
 	return
+}
+
+func namesFromTeam(t *Team) string {
+	names := []string{}
+	for _, player := range t.Players {
+		names = append(names, player.Name)
+	}
+	return strings.Join(names, ",")
+}
+
+func namesFromPlayers(players []*Player) string {
+	names := []string{}
+	for _, player := range players {
+		names = append(names, player.Name)
+	}
+	return strings.Join(names, ",")
 }
