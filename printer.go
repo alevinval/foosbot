@@ -14,7 +14,7 @@ func (ctx *Context) ReportStats(status *Stats, teamOrPlayer interface{}) string 
 	response := fmt.Sprintf("*%s*\n", ctx.Print(teamOrPlayer))
 	response += fmt.Sprintf("Played %d matches (%d wins - %d defeats) - %.2f%% winrate\n", status.PlayedGames,
 		status.Wins, status.Defeats, status.WinRate)
-	response += fmt.Sprintf("```Recent match history\n")
+	response += fmt.Sprintf("```Recent match history:\n")
 	response += ctx.reportHistory(status)
 	response += "```"
 	return response
@@ -22,8 +22,6 @@ func (ctx *Context) ReportStats(status *Stats, teamOrPlayer interface{}) string 
 
 func (ctx *Context) reportHistory(stats *Stats) string {
 	response := ""
-	response += string(len(stats.Results))
-
 	for i, result := range stats.Results {
 		response += ctx.reportHistoryLine(result)
 		if i >= 10 {
