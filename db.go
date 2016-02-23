@@ -13,8 +13,8 @@ const (
 
 type Database struct {
 	Version  string     `json:"version"`
-	Matches  []*Match   `json:"history"`
-	Outcomes []*Outcome `json:"matches"`
+	Matches  []*Match   `json:"matches"`
+	Outcomes []*Outcome `json:"outcomes"`
 	Teams    []*Team    `json:"teams"`
 }
 

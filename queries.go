@@ -130,3 +130,30 @@ func (qb *QueryBuilder) MatchesWithPlayer(p *Player) []*MatchResult {
 	}
 	return rs
 }
+
+func (qb *QueryBuilder) Matches() []*MatchResult {
+	rs := []*MatchResult{}
+	for i := range qb.ctx.Matches {
+		match := qb.ctx.Matches[len(qb.ctx.Matches)-i-1]
+		outcome, ok := qb.OutcomeByID(match.OutcomeID)
+		if !ok {
+			continue
+		}
+		winner, ok := qb.TeamByID(outcome.WinnerID)
+		if !ok {
+			continue
+		}
+		looser, ok := qb.TeamByID(outcome.LooserID)
+		if !ok {
+			continue
+		}
+		result := &MatchResult{
+			Match:    match,
+			Outcome:  outcome,
+			Team:     winner,
+			Opponent: looser,
+		}
+		rs = append(rs, result)
+	}
+	return rs
+}

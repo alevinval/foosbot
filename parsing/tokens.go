@@ -10,6 +10,7 @@ const (
 	TokenDigit
 	TokenCommandMatch
 	TokenCommandStats
+	TokenCommandLeaderboard
 	TokenKeywordFoosbot
 	TokenKeywordVS
 )
@@ -28,6 +29,8 @@ func (t tokenType) String() string {
 		return "match"
 	case TokenCommandStats:
 		return "stats"
+	case TokenCommandLeaderboard:
+		return "leaderboard"
 	case TokenKeywordFoosbot:
 		return "foosbot"
 	case TokenKeywordVS:

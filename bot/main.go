@@ -31,6 +31,11 @@ func addMatchCommand(ctx *foosbot.Context, outcomes []*foosbot.Outcome, teams []
 
 }
 
+func getLeaderboard(ctx *foosbot.Context) string {
+	stats := ctx.PlayersStatsFromMatches()
+	response := ctx.ReportLeaderBoard(stats)
+	return response
+}
 func getTeamStatsCommand(ctx *foosbot.Context, team *foosbot.Team) string {
 	stats := ctx.TeamStats(team)
 	response := ctx.ReportStats(&stats.Stats, team)
@@ -64,6 +69,8 @@ func process(ctx *foosbot.Context, msg *slack.MessageEvent) (response string) {
 			return
 		}
 		response = addMatchCommand(ctx, outcomes, teams)
+	case parsing.TokenCommandLeaderboard:
+		response = getLeaderboard(ctx)
 	case parsing.TokenCommandStats:
 		iface, err := p.ParseStats()
 		if err != nil {

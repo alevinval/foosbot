@@ -106,6 +106,8 @@ func (s *Scanner) scanIdentifier() (tokenType, string) {
 		return TokenCommandMatch, buf.String()
 	case TokenCommandStats.String():
 		return TokenCommandStats, buf.String()
+	case TokenCommandLeaderboard.String():
+		return TokenCommandLeaderboard, buf.String()
 	case TokenKeywordFoosbot.String(), "foosball", "fb":
 		return TokenKeywordFoosbot, buf.String()
 	case TokenKeywordVS.String():

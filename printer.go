@@ -20,9 +20,22 @@ func (ctx *Context) ReportStats(status *Stats, teamOrPlayer interface{}) string 
 	return response
 }
 
+func (ctx *Context) ReportLeaderBoard(stats playerStatsSlice) string {
+	response := "Top10 leaderboard:\n```"
+	for i, stat := range stats {
+		response += fmt.Sprintf("%d.- %-12s w: %-3d l: %-3d (%-5.2f%%)\n", i+1, stat.Player.Name, stat.Wins,
+			stat.Defeats, stat.WinRate)
+		if i >= 10 {
+			break
+		}
+	}
+	response += "```"
+	return response
+}
+
 func (ctx *Context) reportHistory(stats *Stats) string {
 	response := ""
-	for i, result := range stats.Results {
+	for i, result := range stats.Matches {
 		response += ctx.reportHistoryLine(result)
 		if i >= 10 {
 			break

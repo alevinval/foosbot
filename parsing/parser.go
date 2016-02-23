@@ -30,8 +30,8 @@ func (p *Parser) ParseCommand() (Token, error) {
 		return token, ErrNotFoosbotCommand
 	}
 	token = p.scan()
-	if token.Type != TokenCommandMatch && token.Type != TokenCommandStats {
-		return token, newParseError(token, "a valid command (match, stats)")
+	if token.Type != TokenCommandMatch && token.Type != TokenCommandStats && token.Type != TokenCommandLeaderboard {
+		return token, newParseError(token, "a valid command (match, stats, leaderboard)")
 	}
 	return token, nil
 }
@@ -132,6 +132,10 @@ func (p *Parser) ParseStats() (interface{}, error) {
 	p2 := foosbot.NewPlayer(p2name)
 	team, _ := foosbot.NewTeam(p1, p2)
 	return team, nil
+}
+
+func (p *Parser) ParseLeaderboard() error {
+	return p.parseEof()
 }
 
 func (p *Parser) parsePlayerName() (string, error) {
