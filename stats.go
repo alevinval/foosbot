@@ -38,7 +38,7 @@ func (p playerStatsSlice) Swap(i, j int) {
 func (ctx *Context) TeamStats(team *Team) *teamStats {
 	stats := new(teamStats)
 	stats.Team = team
-	stats.Matches = Query(ctx).MatchesWithTeam(team)
+	stats.Matches = Query(ctx).FilterByTeam(team).Matches().Results()
 	for _, result := range stats.Matches {
 		computeStats(&stats.Stats, result)
 	}
@@ -49,7 +49,7 @@ func (ctx *Context) TeamStats(team *Team) *teamStats {
 func (ctx *Context) PlayerStats(player *Player) *playerStats {
 	stats := new(playerStats)
 	stats.Player = player
-	stats.Matches = Query(ctx).MatchesWithPlayer(player)
+	stats.Matches = Query(ctx).FilterByPlayer(player).Matches().Results()
 	for _, result := range stats.Matches {
 		computeStats(&stats.Stats, result)
 	}
@@ -62,7 +62,7 @@ func (ctx *Context) PlayersStatsFromMatches() playerStatsSlice {
 	for _, player := range ctx.Players {
 		statsMap[player.Name] = &playerStats{Player: player}
 	}
-	matches := Query(ctx).Matches()
+	matches := Query(ctx).Matches().Results()
 	for _, match := range matches {
 		winnerPlayers := match.Team.Players
 		looserPlayers := match.Opponent.Players

@@ -1,11 +1,20 @@
 package foosbot
 
+type (
+	MatchStatus bool
+	MatchResult struct {
+		Match    *Match
+		Outcome  *Outcome
+		Team     *Team
+		Opponent *Team
+		Status   MatchStatus
+	}
+)
+
 const (
 	StatusWon  = MatchStatus(true)
 	StatusLost = MatchStatus(false)
 )
-
-type MatchStatus bool
 
 func (s MatchStatus) String() string {
 	if s {
@@ -13,12 +22,4 @@ func (s MatchStatus) String() string {
 	} else {
 		return "lost"
 	}
-}
-
-type MatchResult struct {
-	Match    *Match
-	Status   MatchStatus
-	Outcome  *Outcome
-	Team     *Team
-	Opponent *Team
 }

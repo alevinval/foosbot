@@ -1,12 +1,27 @@
 package foosbot
 
-func Query(ctx *Context) *QueryBuilder {
-	return &QueryBuilder{ctx: ctx, indexes: ctx.indexes}
-}
+type (
+	QueryBuilder struct {
+		ctx     *Context
+		indexes *Indexing
+		results []*MatchResult
+		filter  FilterFunc
+	}
 
-type QueryBuilder struct {
-	ctx     *Context
-	indexes *Indexing
+	FilterFunc func(result *MatchResult) bool
+)
+
+var (
+	FilterNothing FilterFunc = nil
+)
+
+func Query(ctx *Context) *QueryBuilder {
+	return &QueryBuilder{
+		ctx:     ctx,
+		indexes: ctx.indexes,
+		filter:  FilterNothing,
+		results: []*MatchResult{},
+	}
 }
 
 func (qb *QueryBuilder) OutcomeByID(id string) (*Outcome, bool) {
@@ -54,87 +69,10 @@ func (qb *QueryBuilder) TeamWithPlayer(teams []*Team, player *Player) *Team {
 	return nil
 }
 
-func (qb *QueryBuilder) MatchesWithTeam(team *Team) []*MatchResult {
-	rs := []*MatchResult{}
+func (qb *QueryBuilder) Matches() *QueryBuilder {
 	for i := range qb.ctx.Matches {
-		match := qb.ctx.Matches[len(qb.ctx.Matches)-i-1]
-		outcome, ok := qb.OutcomeByID(match.OutcomeID)
-		if !ok {
-			continue
-		}
-		isWinner, isLooser := outcome.IsWinner(team), outcome.IsLooser(team)
-		if !isWinner && !isLooser {
-			continue
-		}
-		var opponent *Team
-		if isWinner {
-			opponent, ok = qb.TeamByID(outcome.LooserID)
-		} else {
-			opponent, ok = qb.TeamByID(outcome.WinnerID)
-		}
-		if !ok {
-			continue
-		}
-		result := &MatchResult{
-			Match:    match,
-			Status:   MatchStatus(isWinner),
-			Outcome:  outcome,
-			Team:     team,
-			Opponent: opponent,
-		}
-		rs = append(rs, result)
-	}
-	return rs
-}
-
-func (qb *QueryBuilder) MatchesWithPlayer(p *Player) []*MatchResult {
-	qTeams := qb.TeamsWithPlayer(p)
-	qTeamsMap := map[string]*Team{}
-	for _, team := range qTeams {
-		qTeamsMap[team.ID] = team
-	}
-
-	rs := []*MatchResult{}
-	for i := range qb.ctx.Matches {
-		match := qb.ctx.Matches[len(qb.ctx.Matches)-i-1]
-		outcome, ok := qb.OutcomeByID(match.OutcomeID)
-		if !ok {
-			continue
-		}
-		var team, opponent *Team
-		winner, isWinner := qTeamsMap[outcome.WinnerID]
-		looser, isLooser := qTeamsMap[outcome.LooserID]
-		if !isWinner && !isLooser {
-			continue
-		} else if isWinner {
-			team = winner
-			opponent, ok = qb.TeamByID(outcome.LooserID)
-			if !ok {
-				continue
-			}
-		} else {
-			team = looser
-			opponent, ok = qb.TeamByID(outcome.WinnerID)
-			if !ok {
-				continue
-			}
-		}
-		result := &MatchResult{
-			Match:    match,
-			Status:   MatchStatus(isWinner),
-			Outcome:  outcome,
-			Team:     team,
-			Opponent: opponent,
-		}
-		rs = append(rs, result)
-	}
-	return rs
-}
-
-func (qb *QueryBuilder) Matches() []*MatchResult {
-	rs := []*MatchResult{}
-	for i := range qb.ctx.Matches {
-		match := qb.ctx.Matches[len(qb.ctx.Matches)-i-1]
+		idx := len(qb.ctx.Matches) - i - 1
+		match := qb.ctx.Matches[idx]
 		outcome, ok := qb.OutcomeByID(match.OutcomeID)
 		if !ok {
 			continue
@@ -153,7 +91,57 @@ func (qb *QueryBuilder) Matches() []*MatchResult {
 			Team:     winner,
 			Opponent: looser,
 		}
-		rs = append(rs, result)
+		if qb.filter != nil && qb.filter(result) {
+			continue
+		}
+		qb.results = append(qb.results, result)
 	}
-	return rs
+	return qb
+}
+
+func (qb *QueryBuilder) FilterByTeam(team *Team) *QueryBuilder {
+	qb.filter = func(result *MatchResult) bool {
+		if team.ID != result.Team.ID && team.ID != result.Opponent.ID {
+			return true
+		}
+		if team.ID == result.Team.ID {
+			result.Status = StatusWon
+		} else {
+			result.Status = StatusLost
+			swap(result.Team, result.Opponent)
+		}
+		return false
+	}
+	return qb
+}
+
+func (qb *QueryBuilder) FilterByPlayer(player *Player) *QueryBuilder {
+	playerTeams := qb.TeamsWithPlayer(player)
+	playerTeamsMap := map[string]*Team{}
+	for _, team := range playerTeams {
+		playerTeamsMap[team.ID] = team
+	}
+	qb.filter = func(result *MatchResult) bool {
+		_, isWinner := playerTeamsMap[result.Team.ID]
+		_, isLooser := playerTeamsMap[result.Opponent.ID]
+		if !isWinner && !isLooser {
+			return true
+		}
+		if isWinner {
+			result.Status = StatusWon
+		} else if isLooser {
+			result.Status = StatusLost
+			swap(result.Team, result.Opponent)
+		}
+		return false
+	}
+	return qb
+}
+
+func (qb *QueryBuilder) Results() []*MatchResult {
+	return qb.results
+}
+
+func swap(a, b interface{}) {
+	a, b = b, a
 }
