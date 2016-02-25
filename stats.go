@@ -4,101 +4,106 @@ import (
 	"sort"
 )
 
-type Stats struct {
-	Matches     []*MatchResult
-	PlayedGames int32   `json:"played_games"`
-	Wins        int32   `json:"wins"`
-	Defeats     int32   `json:"defeats"`
-	WinRate     float32 `json:"win_rate"`
-}
+type (
+	Stats struct {
+		PlayedGames int32   `json:"played_games"`
+		Wins        int32   `json:"wins"`
+		Defeats     int32   `json:"defeats"`
+		WinRate     float32 `json:"win_rate"`
+		Matches     []*MatchResult
+	}
+	TeamStats struct {
+		Stats
+		Team *Team `json:"team"`
+	}
+	PlayerStats struct {
+		Stats
+		Player *Player `json:"player"`
+	}
+	PlayerStatsSlice []*PlayerStats
+)
 
-type teamStats struct {
-	Stats
-	Team *Team `json:"team"`
-}
-
-type playerStats struct {
-	Stats
-	Player *Player `json:"player"`
-}
-
-type playerStatsSlice []*playerStats
-
-func (p playerStatsSlice) Len() int {
+func (p PlayerStatsSlice) Len() int {
 	return len(p)
 }
-func (p playerStatsSlice) Less(i, j int) bool {
-	// Reverse order ( we want higher win-rates first )
-	return p[i].WinRate > p[j].WinRate
+
+func (p PlayerStatsSlice) Less(i, j int) bool {
+	return p[i].WinRate > p[j].WinRate // Reverse order ( we want higher win-rates first )
 }
-func (p playerStatsSlice) Swap(i, j int) {
+
+func (p PlayerStatsSlice) Swap(i, j int) {
 	p[i], p[j] = p[j], p[i]
 }
 
-func (ctx *Context) TeamStats(team *Team) *teamStats {
-	stats := new(teamStats)
-	stats.Team = team
-	stats.Matches = Query(ctx).FilterByTeam(team).Matches().Results()
-	for _, result := range stats.Matches {
-		computeStats(&stats.Stats, result)
+func (ctx *Context) TeamStats(team *Team) *TeamStats {
+	teamstats := new(TeamStats)
+	teamstats.Team = team
+	teamstats.Matches = QueryMatches(ctx).FilterByTeam(team).Get()
+	for _, result := range teamstats.Matches {
+		computeStats(&teamstats.Stats, result)
 	}
-	stats.WinRate = float32(stats.Wins) / float32(stats.PlayedGames) * 100
-	return stats
+	computeWinrate(&teamstats.Stats)
+	return teamstats
 }
 
-func (ctx *Context) PlayerStats(player *Player) *playerStats {
-	stats := new(playerStats)
-	stats.Player = player
-	stats.Matches = Query(ctx).FilterByPlayer(player).Matches().Results()
-	for _, result := range stats.Matches {
-		computeStats(&stats.Stats, result)
+func (ctx *Context) PlayerStats(player *Player) *PlayerStats {
+	playerstats := new(PlayerStats)
+	playerstats.Player = player
+	playerstats.Matches = QueryMatches(ctx).FilterByPlayer(player).Get()
+	for _, result := range playerstats.Matches {
+		computeStats(&playerstats.Stats, result)
 	}
-	stats.WinRate = float32(stats.Wins) / float32(stats.PlayedGames) * 100
-	return stats
+	computeWinrate(&playerstats.Stats)
+	return playerstats
 }
 
-func (ctx *Context) PlayersStatsFromMatches(minimum_played_games int32) playerStatsSlice {
-	statsMap := make(map[string]*playerStats)
+func (ctx *Context) PlayersStatsFromMatches(minPlayedGames int32, maxResults int) PlayerStatsSlice {
+	playerstatsMap := make(map[string]*PlayerStats)
 	for _, player := range ctx.Players {
-		statsMap[player.Name] = &playerStats{Player: player}
+		playerstatsMap[player.Name] = &PlayerStats{Player: player}
 	}
-	matches := Query(ctx).Matches().Results()
+	matches := QueryMatches(ctx).Get()
 	for _, match := range matches {
 		winnerPlayers := match.Team.Players
 		looserPlayers := match.Opponent.Players
 		for _, player := range winnerPlayers {
-			statsMap[player.Name].Wins++
-			statsMap[player.Name].PlayedGames++
+			playerstatsMap[player.Name].Wins++
+			playerstatsMap[player.Name].PlayedGames++
 		}
 		for _, player := range looserPlayers {
-			statsMap[player.Name].Defeats++
-			statsMap[player.Name].PlayedGames++
+			playerstatsMap[player.Name].Defeats++
+			playerstatsMap[player.Name].PlayedGames++
 		}
 	}
-	for _, s := range statsMap {
-		s.WinRate = float32(s.Wins) / float32(s.PlayedGames) * 100
+	for _, playerstats := range playerstatsMap {
+		computeWinrate(&playerstats.Stats)
 	}
 
-	stats := playerStatsSlice{}
-	for _, s := range statsMap {
-		if s.PlayedGames > minimum_played_games {
+	stats := PlayerStatsSlice{}
+	for _, s := range playerstatsMap {
+		if s.PlayedGames >= minPlayedGames {
 			stats = append(stats, s)
 		}
 	}
 	sort.Sort(stats)
-	max := len(stats)
-	if max > 10 {
-		max = 10
+
+	// Trim the stats
+	numResults := len(stats)
+	if numResults > maxResults {
+		numResults = maxResults
 	}
-	stats = stats[:max]
-	return stats
+	return stats[:numResults]
 }
 
 func computeStats(stats *Stats, result *MatchResult) {
 	stats.PlayedGames++
-	if result.Status == StatusWon {
+	if result.Winner {
 		stats.Wins++
 	} else {
 		stats.Defeats++
 	}
+}
+
+func computeWinrate(stats *Stats) {
+	stats.WinRate = float32(stats.Wins) / float32(stats.PlayedGames) * 100
 }

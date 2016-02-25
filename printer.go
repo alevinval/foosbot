@@ -15,13 +15,13 @@ func (ctx *Context) ReportStats(status *Stats, teamOrPlayer interface{}) string 
 	response += fmt.Sprintf("Played %d matches (%d wins - %d defeats) - %.2f%% winrate\n", status.PlayedGames,
 		status.Wins, status.Defeats, status.WinRate)
 	response += fmt.Sprintf("```Recent match history:\n")
-	response += ctx.reportHistory(status)
+	response += ctx.reportStatsHistory(status)
 	response += "```"
 	return response
 }
 
-func (ctx *Context) ReportLeaderBoard(stats playerStatsSlice) string {
-	response := "Top10 leaderboard:\n```"
+func (ctx *Context) ReportLeaderBoard(stats PlayerStatsSlice) string {
+	response := "Top leaderboard:\n```"
 	for i, stat := range stats {
 		response += fmt.Sprintf("%d.- %-12s w: %-3d l: %-3d (%-5.2f%%)\n", i+1, stat.Player.Name, stat.Wins,
 			stat.Defeats, stat.WinRate)
@@ -33,10 +33,10 @@ func (ctx *Context) ReportLeaderBoard(stats playerStatsSlice) string {
 	return response
 }
 
-func (ctx *Context) reportHistory(stats *Stats) string {
+func (ctx *Context) reportStatsHistory(stats *Stats) string {
 	response := ""
 	for i, result := range stats.Matches {
-		response += ctx.reportHistoryLine(result)
+		response += ctx.reportMatchResult(result)
 		if i >= 10 {
 			break
 		}
@@ -44,8 +44,8 @@ func (ctx *Context) reportHistory(stats *Stats) string {
 	return response
 }
 
-func (ctx *Context) reportHistoryLine(result *MatchResult) string {
-	return fmt.Sprintf("%s: %-4s against (%s) (%s)\n", result.Match.ShortID(), result.Status,
+func (ctx *Context) reportMatchResult(result *MatchResult) string {
+	return fmt.Sprintf("%s: %-4s against (%s) (%s)\n", result.Match.ShortID(), result.Status(),
 		ctx.Print(result.Opponent.Players), humanize.Time(result.Match.PlayedAt))
 }
 

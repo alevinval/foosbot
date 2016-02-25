@@ -47,23 +47,3 @@ func BuildTeamID(players ...*Player) string {
 	sort.Strings(playerIds)
 	return hash(playerIds...)
 }
-
-func repeated(a, b []string) bool {
-	hA, hB := map[string]int{}, map[string]int{}
-	for i := range a {
-		hA[a[i]] += 1
-	}
-	for i := range b {
-		hA[b[i]] += 1
-	}
-	for k := range hA {
-		if hA[k] > 1 {
-			return true
-		}
-		_, ok := hB[k]
-		if ok {
-			return true
-		}
-	}
-	return false
-}
