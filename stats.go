@@ -57,7 +57,7 @@ func (ctx *Context) PlayerStats(player *Player) *playerStats {
 	return stats
 }
 
-func (ctx *Context) PlayersStatsFromMatches() playerStatsSlice {
+func (ctx *Context) PlayersStatsFromMatches(minimum_played_games int32) playerStatsSlice {
 	statsMap := make(map[string]*playerStats)
 	for _, player := range ctx.Players {
 		statsMap[player.Name] = &playerStats{Player: player}
@@ -81,11 +81,16 @@ func (ctx *Context) PlayersStatsFromMatches() playerStatsSlice {
 
 	stats := playerStatsSlice{}
 	for _, s := range statsMap {
-		stats = append(stats, s)
+		if s.PlayedGames > minimum_played_games {
+			stats = append(stats, s)
+		}
 	}
 	sort.Sort(stats)
-	var reverseStats playerStatsSlice
-	reverseStats = append(reverseStats, stats...)
+	max := len(stats)
+	if max > 10 {
+		max = 10
+	}
+	stats = stats[:max]
 	return stats
 }
 

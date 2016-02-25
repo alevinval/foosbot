@@ -32,7 +32,7 @@ func addMatchCommand(ctx *foosbot.Context, outcomes []*foosbot.Outcome, teams []
 }
 
 func getLeaderboard(ctx *foosbot.Context) string {
-	stats := ctx.PlayersStatsFromMatches()
+	stats := ctx.PlayersStatsFromMatches(10)
 	response := ctx.ReportLeaderBoard(stats)
 	return response
 }
