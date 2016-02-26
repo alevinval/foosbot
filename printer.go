@@ -7,15 +7,15 @@ import (
 	"strings"
 )
 
-func (ctx *Context) ReportStats(status *Stats, teamOrPlayer interface{}) string {
-	if status.PlayedGames == 0 {
-		return fmt.Sprintf("%s hasn't played any match yet.", ctx.Print(teamOrPlayer))
+func (ctx *Context) ReportStats(stats *Stats) string {
+	if stats.PlayedGames == 0 {
+		return fmt.Sprintf("%s hasn't played any match yet.", ctx.Print(stats.who))
 	}
-	response := fmt.Sprintf("*%s*\n", ctx.Print(teamOrPlayer))
-	response += fmt.Sprintf("Played %d matches (%d wins - %d defeats) - %.2f%% winrate\n", status.PlayedGames,
-		status.Wins, status.Defeats, status.WinRate)
+	response := fmt.Sprintf("*%s*\n", ctx.Print(stats.who))
+	response += fmt.Sprintf("Played %d matches (%d wins - %d defeats) - %.2f%% winrate\n", stats.PlayedGames,
+		stats.Wins, stats.Defeats, stats.WinRate)
 	response += fmt.Sprintf("```Recent match history:\n")
-	response += ctx.reportStatsHistory(status)
+	response += ctx.reportStatsHistory(stats)
 	response += "```"
 	return response
 }

@@ -11,6 +11,7 @@ type (
 		Defeats     int32   `json:"defeats"`
 		WinRate     float32 `json:"win_rate"`
 		Matches     []*MatchResult
+		who         interface{}
 	}
 	TeamStats struct {
 		Stats
@@ -37,6 +38,7 @@ func (p PlayerStatsSlice) Swap(i, j int) {
 
 func (ctx *Context) TeamStats(team *Team) *TeamStats {
 	teamstats := new(TeamStats)
+	teamstats.who = team
 	teamstats.Team = team
 	teamstats.Matches = QueryMatches(ctx).FilterByTeam(team).Get()
 	for _, result := range teamstats.Matches {
@@ -48,6 +50,7 @@ func (ctx *Context) TeamStats(team *Team) *TeamStats {
 
 func (ctx *Context) PlayerStats(player *Player) *PlayerStats {
 	playerstats := new(PlayerStats)
+	playerstats.who = player
 	playerstats.Player = player
 	playerstats.Matches = QueryMatches(ctx).FilterByPlayer(player).Get()
 	for _, result := range playerstats.Matches {

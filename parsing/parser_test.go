@@ -83,25 +83,24 @@ func TestParseMatchCommand(t *testing.T) {
 
 func TestParseStatsCommand(t *testing.T) {
 	p := newParser("p1 p2")
-	obj, err := p.ParseStats()
+	s, err := p.ParseStats()
 	assert.Nil(t, err)
-	assert.IsType(t, obj, new(foosbot.Team))
-	assert.Equal(t, 2, len(obj.(*foosbot.Team).Players))
+	assert.Equal(t, []string{"p1", "p2"}, s.Names)
 
 	p = newParser("p1")
-	obj, err = p.ParseStats()
+	s, err = p.ParseStats()
 	assert.Nil(t, err)
-	assert.IsType(t, obj, new(foosbot.Player))
+	assert.Equal(t, []string{"p1"}, s.Names)
 
 	p = newParser("1 p2")
-	obj, err = p.ParseStats()
+	_, err = p.ParseStats()
 	assert.NotNil(t, err)
 
 	p = newParser("1a p2")
-	obj, err = p.ParseStats()
+	_, err = p.ParseStats()
 	assert.NotNil(t, err)
 
 	p = newParser("a1 2")
-	obj, err = p.ParseStats()
+	_, err = p.ParseStats()
 	assert.NotNil(t, err)
 }

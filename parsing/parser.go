@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/alevinval/foosbot"
 	"strconv"
 )
 
@@ -81,30 +80,20 @@ func (p *Parser) ParseMatch() (statement *MatchStatement, err error) {
 	return statement, err
 }
 
-func (p *Parser) ParseStats() (interface{}, error) {
-	p1name, err := p.parsePlayerName()
-	if err != nil {
-		return nil, err
-	}
-	err = p.parseEof()
-	if err != nil {
+func (p *Parser) ParseStats() (*StatStatement, error) {
+	names := []string{}
+	eoferr := p.parseEof()
+	var err error
+	for eoferr != nil {
 		p.unscan()
-	} else {
-		p1 := foosbot.NewPlayer(p1name)
-		return p1, nil
+		name, err := p.parsePlayerName()
+		if err != nil {
+			return nil, err
+		}
+		names = append(names, name)
+		eoferr = p.parseEof()
 	}
-	p2name, err := p.parsePlayerName()
-	if err != nil {
-		return nil, err
-	}
-	err = p.parseEof()
-	if err != nil {
-		return nil, err
-	}
-	p1 := foosbot.NewPlayer(p1name)
-	p2 := foosbot.NewPlayer(p2name)
-	team, _ := foosbot.NewTeam(p1, p2)
-	return team, nil
+	return &StatStatement{Names: names}, err
 }
 
 func (p *Parser) ParseLeaderboard() error {

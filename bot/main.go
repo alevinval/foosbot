@@ -25,16 +25,13 @@ func getLeaderboard(ctx *foosbot.Context) string {
 	response := ctx.ReportLeaderBoard(stats)
 	return response
 }
-func getTeamStatsCommand(ctx *foosbot.Context, team *foosbot.Team) string {
-	stats := ctx.TeamStats(team)
-	response := ctx.ReportStats(&stats.Stats, team)
-	return response
-}
 
-func getPlayerStatsCommand(ctx *foosbot.Context, player *foosbot.Player) string {
-	stats := ctx.PlayerStats(player)
-	response := ctx.ReportStats(&stats.Stats, player)
-	return response
+func statsCommand(ctx *foosbot.Context, statement *parsing.StatStatement) string {
+	stats, err := statement.Execute(ctx)
+	if err != nil {
+		return err.Error()
+	}
+	return ctx.ReportStats(stats)
 }
 
 func process(ctx *foosbot.Context, msg *slack.MessageEvent) (response string) {
@@ -61,17 +58,12 @@ func process(ctx *foosbot.Context, msg *slack.MessageEvent) (response string) {
 	case parsing.TokenCommandLeaderboard:
 		response = getLeaderboard(ctx)
 	case parsing.TokenCommandStats:
-		iface, err := p.ParseStats()
+		statStatement, err := p.ParseStats()
 		if err != nil {
 			response = err.Error()
 			return
 		}
-		switch obj := iface.(type) {
-		case *foosbot.Team:
-			response = getTeamStatsCommand(ctx, obj)
-		case *foosbot.Player:
-			response = getPlayerStatsCommand(ctx, obj)
-		}
+		response = statsCommand(ctx, statStatement)
 
 	}
 	return
