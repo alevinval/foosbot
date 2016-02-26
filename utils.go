@@ -14,10 +14,6 @@ func hash(input ...string) string {
 	return hex.EncodeToString(h)
 }
 
-func swap(a, b interface{}) {
-	a, b = b, a
-}
-
 func repeated(a, b []string) bool {
 	hA, hB := map[string]int{}, map[string]int{}
 	for i := range a {

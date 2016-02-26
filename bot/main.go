@@ -11,24 +11,13 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"strings"
 	"time"
 )
 
-func addMatchCommand(ctx *foosbot.Context, outcomes []*foosbot.Outcome, teams []*foosbot.Team) string {
-	for i := range teams {
-		ctx.AddTeam(teams[i])
-	}
-	for i := range outcomes {
-		ctx.AddMatchWithOutcome(outcomes[i])
-	}
-	ids := []string{}
-	for i := range outcomes {
-		ids = append(ids, outcomes[i].ShortID())
-	}
-	idsStr := strings.Join(ids, ",")
-	return fmt.Sprintf("%d matches %q registered to history.", len(outcomes), idsStr)
-
+func addMatchCommand(ctx *foosbot.Context, statement *parsing.MatchStatement) string {
+	statement.Execute(ctx)
+	total := statement.TeamOneScore + statement.TeamTwoScore
+	return fmt.Sprintf("%d matches registered to history.", total)
 }
 
 func getLeaderboard(ctx *foosbot.Context) string {
@@ -63,12 +52,12 @@ func process(ctx *foosbot.Context, msg *slack.MessageEvent) (response string) {
 	fmt.Println(time.Now().String(), msg.Text)
 	switch token.Type {
 	case parsing.TokenCommandMatch:
-		outcomes, teams, err := p.ParseMatch()
+		matchStatement, err := p.ParseMatch()
 		if err != nil {
 			response = err.Error()
 			return
 		}
-		response = addMatchCommand(ctx, outcomes, teams)
+		response = addMatchCommand(ctx, matchStatement)
 	case parsing.TokenCommandLeaderboard:
 		response = getLeaderboard(ctx)
 	case parsing.TokenCommandStats:

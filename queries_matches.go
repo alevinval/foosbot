@@ -54,7 +54,7 @@ func (mqb *MatchesQueryBuilder) FilterByTeam(team *Team) *MatchesQueryBuilder {
 			result.Winner = true
 		} else {
 			result.Winner = false
-			swap(result.Team, result.Opponent)
+			result.Team, result.Opponent = result.Opponent, result.Team
 		}
 		return false
 	}
@@ -77,7 +77,7 @@ func (mqb *MatchesQueryBuilder) FilterByPlayer(player *Player) *MatchesQueryBuil
 			result.Winner = true
 		} else if isLooser {
 			result.Winner = false
-			swap(result.Team, result.Opponent)
+			result.Team, result.Opponent = result.Opponent, result.Team
 		}
 		return false
 	}

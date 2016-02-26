@@ -36,8 +36,8 @@ func (p *Parser) ParseCommand() (Token, error) {
 	return token, nil
 }
 
-func (p *Parser) ParseMatch() (outcomes []*foosbot.Outcome, teams []*foosbot.Team, err error) {
-	var t1Score, t2Score int64
+func (p *Parser) ParseMatch() (statement *MatchStatement, err error) {
+	var t1Score, t2Score int
 	p1name, err := p.parsePlayerName()
 	if err != nil {
 		return
@@ -72,40 +72,13 @@ func (p *Parser) ParseMatch() (outcomes []*foosbot.Outcome, teams []*foosbot.Tea
 	}
 	t1Players := []string{p1name, p2name}
 	t2Players := []string{p3name, p4name}
-
-	// Parsing correct, create outcomes
-	p1, p2 := foosbot.NewPlayer(t1Players[0]), foosbot.NewPlayer(t1Players[1])
-	p3, p4 := foosbot.NewPlayer(t2Players[0]), foosbot.NewPlayer(t2Players[1])
-	t1, perr := foosbot.NewTeam(p1, p2)
-	if perr != nil {
-		err = newCommandError(perr.Error())
-		return
+	statement = &MatchStatement{
+		TeamOne:      t1Players,
+		TeamOneScore: t1Score,
+		TeamTwo:      t2Players,
+		TeamTwoScore: t2Score,
 	}
-	t2, perr := foosbot.NewTeam(p3, p4)
-	if perr != nil {
-		err = newCommandError(perr.Error())
-		return
-	}
-
-	for t1Score > 0 {
-		outcome, oerr := foosbot.NewOutcome(t1, t2)
-		if oerr != nil {
-			err = newCommandError(oerr.Error())
-			return
-		}
-		outcomes = append(outcomes, outcome)
-		t1Score--
-	}
-	for t2Score > 0 {
-		outcome, oerr := foosbot.NewOutcome(t2, t1)
-		if err != nil {
-			err = newCommandError(oerr.Error())
-			return
-		}
-		outcomes = append(outcomes, outcome)
-		t2Score--
-	}
-	return outcomes, []*foosbot.Team{t1, t2}, nil
+	return statement, err
 }
 
 func (p *Parser) ParseStats() (interface{}, error) {
@@ -146,13 +119,13 @@ func (p *Parser) parsePlayerName() (string, error) {
 	return token.Literal, nil
 }
 
-func (p *Parser) parseScore() (int64, error) {
+func (p *Parser) parseScore() (int, error) {
 	token := p.scan()
 	if token.Type != TokenDigit {
 		return 0, newParseError(token, fmt.Sprintf("team score %s", TokenDigit))
 	}
 	value, _ := strconv.ParseInt(token.Literal, 10, 0)
-	return value, nil
+	return int(value), nil
 }
 
 func (p *Parser) parseVs() error {
