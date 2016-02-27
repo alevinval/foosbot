@@ -8,6 +8,7 @@ import (
 )
 
 var (
+	Verbose    = true
 	compress   = flag.Bool("compress", false, "compresses the database")
 	decompress = flag.Bool("decompress", false, "decompresses the database")
 )
@@ -109,7 +110,9 @@ func (ctx *Context) AddPlayer(player *Player) {
 }
 
 func (ctx *Context) Store() error {
-	log.Println("storing database")
+	if Verbose {
+		log.Println("storing database")
+	}
 	err := StoreDB(ctx, *compress)
 	if err != nil {
 		log.Printf("error storing database: %s", err)
@@ -119,7 +122,10 @@ func (ctx *Context) Store() error {
 }
 
 func (ctx *Context) Load() error {
-	log.Println("loading database")
+	var bar *pb.ProgressBar
+	if Verbose {
+		log.Println("loading database")
+	}
 	db, err := LoadDB(ctx.DatabaseName, *decompress)
 	if os.IsNotExist(err) {
 		log.Printf("database not found")
@@ -129,32 +135,50 @@ func (ctx *Context) Load() error {
 		return err
 	}
 
-	log.Println("loading teams")
-	bar := pb.StartNew(len(db.Teams))
+	if Verbose {
+		log.Println("loading teams")
+		bar = pb.StartNew(len(db.Teams))
+	}
 	for _, team := range db.Teams {
 		ctx.AddTeam(team)
-		bar.Increment()
+		if Verbose {
+			bar.Increment()
+		}
 	}
-	bar.Finish()
+	if Verbose {
+		bar.Finish()
+	}
 
-	log.Println("loading match history")
+	if Verbose {
+		log.Println("loading match history")
+		bar = pb.StartNew(len(db.Outcomes))
+	}
 	loadedOutcomes := map[string]*Outcome{}
-	bar = pb.StartNew(len(db.Outcomes))
 	for _, outcome := range db.Outcomes {
 		loadedOutcomes[outcome.ID] = outcome
-		bar.Increment()
+		if Verbose {
+			bar.Increment()
+		}
 	}
-	bar.Finish()
+	if Verbose {
+		bar.Finish()
+	}
 
-	bar = pb.StartNew(len(db.Matches))
+	if Verbose {
+		bar = pb.StartNew(len(db.Matches))
+	}
 	for _, match := range db.Matches {
 		outcome, ok := loadedOutcomes[match.OutcomeID]
 		if !ok {
 			log.Panicf("corrupted history %q", match.ID)
 		}
 		ctx.AddMatch(match, outcome)
-		bar.Increment()
+		if Verbose {
+			bar.Increment()
+		}
 	}
-	bar.Finish()
+	if Verbose {
+		bar.Finish()
+	}
 	return nil
 }

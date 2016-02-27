@@ -2,3 +2,4 @@
 *.db
 .access_token
 bot/bot
+cli/cli

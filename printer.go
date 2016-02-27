@@ -59,6 +59,16 @@ func (ctx *Context) Print(i interface{}) (out string) {
 		out = fmt.Sprintf("%s (%s)", obj.ShortID(), obj.Name)
 	case []*Player:
 		out = namesFromPlayers(obj)
+	case *MatchResult:
+		pad := func(field, value interface{}, pad int) string {
+			f := fmt.Sprintf("%%%ds: %%s", pad)
+			return fmt.Sprintf(f, field, value)
+		}
+		match := pad("Match", obj.Match.ID, 8)
+		date := pad("Date", obj.Match.PlayedAt, 8)
+		winner := pad("Winner", ctx.Print(obj.Team), 8)
+		looser := pad("Looser", ctx.Print(obj.Opponent), 8)
+		out = fmt.Sprintf("\n%s\n%s\n%s\n%s\n", match, date, winner, looser)
 	default:
 		b, _ := json.Marshal(obj)
 		out = string(b)

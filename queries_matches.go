@@ -86,7 +86,7 @@ func (mqb *MatchesQueryBuilder) FilterByPlayer(player *Player) *MatchesQueryBuil
 
 func (mqb *MatchesQueryBuilder) Get() []*MatchResult {
 	for i := range mqb.ctx.Matches {
-		if mqb.limit > 0 && i > mqb.limit {
+		if mqb.limit > 0 && i >= mqb.limit {
 			break
 		}
 		idx := len(mqb.ctx.Matches) - i - 1
