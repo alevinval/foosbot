@@ -1,6 +1,8 @@
 package parsing
 
-import "github.com/alevinval/foosbot"
+import (
+	"github.com/alevinval/foosbot"
+)
 
 type (
 	MatchStatement struct {
@@ -21,30 +23,33 @@ func (m *MatchStatement) Execute(ctx *foosbot.Context) error {
 	if err != nil {
 		return err
 	}
+
 	t2Players := []*foosbot.Player{}
 	for _, name := range m.TeamTwo {
-		t1Players = append(t1Players, foosbot.NewPlayer(name))
+		t2Players = append(t2Players, foosbot.NewPlayer(name))
 	}
 	team2, err := foosbot.NewTeam(t2Players...)
 	if err != nil {
 		return err
 	}
 	outcomes := []*foosbot.Outcome{}
-	for m.TeamOneScore > 0 {
+	var i = m.TeamOneScore
+	for i > 0 {
 		outcome, err := foosbot.NewOutcome(team1, team2)
 		if err != nil {
 			return newCommandError(err.Error())
 		}
 		outcomes = append(outcomes, outcome)
-		m.TeamOneScore--
+		i--
 	}
-	for m.TeamTwoScore > 0 {
+	i = m.TeamTwoScore
+	for i > 0 {
 		outcome, err := foosbot.NewOutcome(team2, team1)
 		if err != nil {
 			return newCommandError(err.Error())
 		}
 		outcomes = append(outcomes, outcome)
-		m.TeamTwoScore--
+		i--
 	}
 	ctx.AddTeam(team1)
 	ctx.AddTeam(team2)
