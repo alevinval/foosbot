@@ -2,7 +2,6 @@ package parsing_test
 
 import (
 	"bytes"
-	"github.com/alevinval/foosbot"
 	"github.com/alevinval/foosbot/parsing"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -60,24 +59,6 @@ func TestParseMatchCommand(t *testing.T) {
 
 	p = newParser("p1 p2 2 vs 1 p3 2")
 	_, err = p.ParseMatch()
-	assert.NotNil(t, err)
-
-	p = newParser("p1 p2 2 vs 1 p1 p2")
-	s, err := p.ParseMatch()
-	assert.Nil(t, err)
-	err = s.Execute(foosbot.NewContext())
-	assert.NotNil(t, err)
-
-	p = newParser("p1 p1 2 vs 1 p3 p4")
-	s, err = p.ParseMatch()
-	assert.Nil(t, err)
-	err = s.Execute(foosbot.NewContext())
-	assert.NotNil(t, err)
-
-	p = newParser("p1 p2 2 vs 1 p3 p3")
-	s, err = p.ParseMatch()
-	assert.Nil(t, err)
-	err = s.Execute(foosbot.NewContext())
 	assert.NotNil(t, err)
 }
 

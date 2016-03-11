@@ -2,6 +2,7 @@ package foosbot_test
 
 import (
 	"github.com/alevinval/foosbot"
+	"github.com/alevinval/foosbot/parsing"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -95,4 +96,44 @@ func TestReset(t *testing.T) {
 	player, ok = foosbot.Query(ctx).PlayerByName("a")
 	assert.False(t, ok)
 	assert.Nil(t, player)
+}
+
+func TestExecuteMatchStatement(t *testing.T) {
+	ctx := foosbot.NewContext()
+
+	statement := parsing.MatchStatement{
+		TeamOne:      []string{"p1", "p2"},
+		TeamOneScore: 3,
+		TeamTwo:      []string{"p3", "p4"},
+		TeamTwoScore: 5,
+	}
+	err := ctx.ExecuteMatch(statement)
+	assert.Nil(t, err)
+
+	statement = parsing.MatchStatement{
+		TeamOne:      []string{"p1", "p1"},
+		TeamOneScore: 2,
+		TeamTwo:      []string{"p3", "p4"},
+		TeamTwoScore: 1,
+	}
+	err = ctx.ExecuteMatch(statement)
+	assert.NotNil(t, err)
+
+	statement = parsing.MatchStatement{
+		TeamOne:      []string{"p1", "p2"},
+		TeamOneScore: 2,
+		TeamTwo:      []string{"p3", "p3"},
+		TeamTwoScore: 1,
+	}
+	err = ctx.ExecuteMatch(statement)
+	assert.NotNil(t, err)
+}
+
+func TestExecuteStatsStatement(t *testing.T) {
+	ctx := foosbot.NewContext()
+	statement := parsing.StatStatement{
+		Names: []string{"p1", "p2"},
+	}
+	_, err := ctx.ExecuteStats(statement)
+	assert.Nil(t, err)
 }

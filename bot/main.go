@@ -15,7 +15,10 @@ import (
 )
 
 func addMatchCommand(ctx *foosbot.Context, statement *parsing.MatchStatement) string {
-	statement.Execute(ctx)
+	err := ctx.ExecuteMatch(*statement)
+	if err != nil {
+		return err.Error()
+	}
 	total := statement.TeamOneScore + statement.TeamTwoScore
 	return fmt.Sprintf("%d matches registered to history.", total)
 }
@@ -27,7 +30,7 @@ func getLeaderboard(ctx *foosbot.Context) string {
 }
 
 func statsCommand(ctx *foosbot.Context, statement *parsing.StatStatement) string {
-	stats, err := statement.Execute(ctx)
+	stats, err := ctx.ExecuteStats(*statement)
 	if err != nil {
 		return err.Error()
 	}
